@@ -4,22 +4,49 @@ import bcrypt from 'bcrypt'
 const prisma = new PrismaClient()
 
 const defaultCategories: Record<string, string[]> = {
-  'Moradia': ['Aluguel', 'Hipoteca', 'Condomínio', 'Seguro Residencial', 'Manutenção', 'Limpeza'],
-  'Alimentação': ['Supermercado', 'Restaurante', 'Delivery', 'Café', 'Padaria', 'Açougue'],
-  'Transporte': ['Combustível', 'Seguro Auto', 'Manutenção Auto', 'Transporte Público', 'Uber/Taxi', 'Registro Veículo'],
-  'Saúde': ['Plano de Saúde', 'Médico', 'Dentista', 'Farmácia', 'Exames', 'Academia'],
-  'Educação': ['Escola', 'Faculdade', 'Cursos', 'Livros', 'Material Escolar'],
-  'Lazer': ['Streaming', 'Cinema', 'Shows', 'Viagens', 'Hobbies', 'Esportes'],
-  'Vestuário': ['Roupas', 'Calçados', 'Acessórios'],
-  'Tecnologia': ['Internet', 'Celular', 'Assinaturas', 'Hardware', 'Software'],
-  'Finanças': ['Poupança', 'Investimento', 'Seguro', 'Imposto', 'Tarifas Bancárias'],
-  'Utilidades': ['Energia', 'Água', 'Gás', 'Internet Casa'],
-  'Pets': ['Veterinário', 'Ração', 'Acessórios Pet', 'Banho e Tosa'],
-  'Presentes': ['Aniversário', 'Natal', 'Casamento', 'Outros Presentes'],
-  'Receita': ['Salário', 'Freelance', 'Investimentos', 'Aluguel Recebido', 'Outras Receitas'],
-  'Transferência': ['Entre Contas', 'Reembolso', 'Outros'],
-  'Marmitas': ['Insumos', 'Embalagens', 'Transporte Entrega', 'Marketing', 'Equipamentos', 'Receita Marmitas'],
-  'Personal Chef': ['Insumos Chef', 'Equipamentos Chef', 'Transporte Chef', 'Marketing Chef', 'Receita Chef'],
+  // 1 - Despesas Não Obrigatórias
+  'Assinaturas e Serviços': [],
+  'Compras': [],
+  'Esportes': [],
+  'Lazer': [],
+  'Outros': [],
+  'Presentes e Doações': [],
+  'Restaurantes': [],
+  'Tarifas Bancárias': [],
+  'Vestuário': [],
+  'Viagens': [],
+  // 2 - Despesas Obrigatórias
+  'Alimentação': [],
+  'Casa': [],
+  'Casa de Veraneio': [],
+  'Cuidados Pessoais': [],
+  'Despesas Médicas': [],
+  'Educação': [],
+  'Filhos e Família': [],
+  'Impostos e Taxas': [],
+  'Mercado': [],
+  'Pets': [],
+  'Prestadores de Serviços': [],
+  'Profissional e Trabalho': [],
+  'Saúde': [],
+  'Seguro': [],
+  'Serviços Financeiros': [],
+  'Transporte': [],
+  // 3 - Dívida
+  'Dívidas e Empréstimos': [],
+  // 4 - Empresa e Autônomos
+  'Colaboradores': [],
+  'Ferramentas': [],
+  'Infraestrutura': [],
+  'Insumos e Outros': [],
+  'Marketing': [],
+  'Meios de Pagamento': [],
+  'Prestadores de Serviço - Empresa': [],
+  'Taxas e Impostos - Empresa': [],
+  // 5 - Renda
+  'Outras Fontes de Renda': [],
+  'Renda Cliente': [],
+  'Renda Cônjuge': [],
 }
 
 const defaultBanks = [
@@ -36,7 +63,10 @@ async function main() {
   // Cria Settings padrão
   await prisma.settings.upsert({
     where: { id: 1 },
-    update: {},
+    update: {
+      banks: JSON.stringify(defaultBanks),
+      categories: JSON.stringify(defaultCategories),
+    },
     create: {
       id: 1,
       banks: JSON.stringify(defaultBanks),
