@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    image: ghcr.io/jpsbdm/financa-app:latest
     container_name: financa-app
     restart: unless-stopped
     volumes:
@@ -34,4 +34,8 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 86400 --rolling-restart financa-app
+      - /root/.docker/config.json:/config.json:ro  # credenciais do ghcr.io
+    environment:
+      - WATCHTOWER_CLEANUP=true        # remove imagens antigas automaticamente
+      - WATCHTOWER_ROLLING_RESTART=true
+    command: --interval 300 financa-app  # checa por nova imagem a cada 5 minutos
