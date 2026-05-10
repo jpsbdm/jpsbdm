@@ -80,6 +80,26 @@ export async function GET(request: NextRequest) {
     take: 6,
   })
 
+  // Saldos das contas (saldo inicial + movimentações desde a data inicial)
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } })
+  const initialBalances: Record<string, { amount: number; date: string }> = settings
+    ? JSON.parse(settings.initialBalances ?? '{}')
+    : {}
+
+  const accountBalances = await Promise.all(
+    Object.entries(initialBalances).map(async ([bank, { amount: initialAmount, date: initialDate }]) => {
+      const txsSince = await prisma.transaction.findMany({
+        where: { bank, date: { gte: new Date(initialDate) } },
+      })
+      const net = txsSince.reduce((s, t) => {
+        if (t.type === 'Receita') return s + t.amount
+        if (t.type === 'Despesa') return s - t.amount
+        return s
+      }, 0)
+      return { bank, initialAmount, initialDate, currentBalance: initialAmount + net }
+    })
+  )
+
   return NextResponse.json({
     kpis: { receitas, despesas, saldo: receitas - despesas, pendentesGrao },
     trend,
@@ -90,5 +110,6 @@ export async function GET(request: NextRequest) {
     },
     recentTransactions,
     analysis5030: { necessidades, desejos: Math.max(0, desejos), poupanca, totalReceita: receitas },
+    accountBalances,
   })
 }

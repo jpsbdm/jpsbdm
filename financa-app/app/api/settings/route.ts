@@ -12,6 +12,7 @@ export async function GET() {
   return NextResponse.json({
     banks: JSON.parse(settings.banks),
     categories: JSON.parse(settings.categories),
+    initialBalances: JSON.parse(settings.initialBalances ?? '{}'),
   })
 }
 
@@ -20,6 +21,7 @@ export async function PUT(request: NextRequest) {
   const update: Record<string, string> = {}
   if (body.banks !== undefined) update.banks = JSON.stringify(body.banks)
   if (body.categories !== undefined) update.categories = JSON.stringify(body.categories)
+  if (body.initialBalances !== undefined) update.initialBalances = JSON.stringify(body.initialBalances)
 
   const settings = await prisma.settings.upsert({
     where: { id: 1 },
@@ -29,5 +31,6 @@ export async function PUT(request: NextRequest) {
   return NextResponse.json({
     banks: JSON.parse(settings.banks),
     categories: JSON.parse(settings.categories),
+    initialBalances: JSON.parse(settings.initialBalances ?? '{}'),
   })
 }

@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/review-finance-app-plan-nj2zM
+      - claude/fix-savings-transactions-ckXKG
     paths:
       - 'financa-app/**'
 

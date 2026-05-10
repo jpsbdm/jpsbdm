@@ -27,6 +27,10 @@ const defaultBanks = [
   'CBA - Poupança',
   'ANZ - Conta Corrente',
   'Qantas Money - Cartão',
+  'Zip Pay',
+  'Zip Money ANZ',
+  'Latitude',
+  'Empréstimo Pessoal',
   'Dinheiro',
   'Outro',
 ]
