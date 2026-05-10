@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Account, AccountType, DebtPayoffResult } from '@/types'
 import { Topbar } from '@/components/layout/Topbar'
 import { ProgressBar } from '@/components/shared/ProgressBar'
@@ -148,10 +148,6 @@ export default function ContasPage() {
   const payoffResultAlt: DebtPayoffResult | null = hasDebts
     ? simulateDebtPayoff(debtsForTracker, parseFloat(extraPayment) || 0, debtMethod === 'avalanche' ? 'bola-de-neve' : 'avalanche')
     : null
-
-  function f(form: AccountFormState) {
-    return { ...form, type: form.type as AccountType }
-  }
 
   const needsExtra = isLiability(form.type)
 

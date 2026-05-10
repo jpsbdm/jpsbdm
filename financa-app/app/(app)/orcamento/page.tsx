@@ -123,10 +123,16 @@ export default function OrcamentoPage() {
                 const isOver = item.budgeted > 0 && item.actual > item.budgeted
                 const isEditing = item.category in editing
                 const avg = categoryAverages[item.category]
+                const usagePct = item.budgeted > 0 ? Math.round((item.actual / item.budgeted) * 100) : 0
+                const isWarning = item.budgeted > 0 && usagePct >= 80 && !isOver
                 return (
                   <div key={item.category} className="px-4 py-3 border-b border-slate-border last:border-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[13px] font-medium text-ink">{item.category}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-medium text-ink">{item.category}</span>
+                        {isOver && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-[#E11D48] uppercase tracking-wide">Excedeu</span>}
+                        {isWarning && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-[#D97706] uppercase tracking-wide">{usagePct}%</span>}
+                      </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-[12px] font-semibold ${isOver ? 'text-[#E11D48]' : 'text-ink-2'}`}>
                           {formatCurrency(item.actual)}

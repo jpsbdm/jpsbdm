@@ -5,7 +5,7 @@ import { SavingsGoal } from '@/types'
 import { Topbar } from '@/components/layout/Topbar'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { formatCurrency, formatDate, calcETA } from '@/lib/utils'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X, PlusCircle } from 'lucide-react'
 
 const CARD_COLORS = [
   { accent: '#0D9488', light: '#CCFBF1', label: 'text-teal' },
@@ -29,6 +29,9 @@ export default function PoupancaPage() {
   const [showNewForm, setShowNewForm] = useState(false)
   const [newForm, setNewForm] = useState<NewGoalForm>({ name: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
   const [creating, setCreating] = useState(false)
+  const [aporteId, setAporteId] = useState<number | null>(null)
+  const [aporteValue, setAporteValue] = useState('')
+  const [aporteLoading, setAporteLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/savings')
@@ -60,6 +63,23 @@ export default function PoupancaPage() {
     if (!confirm('Excluir esta meta de poupança?')) return
     await fetch(`/api/savings/${id}`, { method: 'DELETE' })
     setGoals((prev) => prev.filter((g) => g.id !== id))
+  }
+
+  async function registrarAporte(goal: SavingsGoal) {
+    const amount = parseFloat(aporteValue)
+    if (!amount || amount <= 0) return
+    setAporteLoading(true)
+    const newAmount = goal.currentAmount + amount
+    const res = await fetch(`/api/savings/${goal.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentAmount: newAmount }),
+    })
+    const data = await res.json()
+    setGoals((prev) => prev.map((g) => (g.id === goal.id ? data.goal : g)))
+    setAporteId(null)
+    setAporteValue('')
+    setAporteLoading(false)
   }
 
   async function createGoal() {
@@ -201,6 +221,41 @@ export default function PoupancaPage() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Registrar Aporte */}
+                    {aporteId === goal.id ? (
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step="10"
+                          placeholder="Valor do aporte"
+                          value={aporteValue}
+                          onChange={(e) => setAporteValue(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && registrarAporte(goal)}
+                          className="input-field flex-1 text-sm"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => registrarAporte(goal)}
+                          disabled={aporteLoading}
+                          className="btn-primary text-sm px-3 py-1.5"
+                        >
+                          {aporteLoading ? '...' : 'Confirmar'}
+                        </button>
+                        <button onClick={() => { setAporteId(null); setAporteValue('') }} className="text-ink-3 hover:text-ink">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setAporteId(goal.id); setAporteValue('') }}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-slate-border text-[12px] text-ink-3 hover:border-teal hover:text-teal transition-colors"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        Registrar Aporte
+                      </button>
+                    )}
 
                     {saving === goal.id && (
                       <p className="text-[11px] text-ink-3 text-right">Salvando...</p>

@@ -49,6 +49,9 @@ export default function DashboardPage() {
   const { necessidades, desejos, poupanca, totalReceita } = analysis5030
   const topComparison = (analytics?.comparison ?? []).slice(0, 5)
   const subs = (analytics?.subscriptions ?? []).slice(0, 5)
+  const weeklyReview = analytics?.weeklyReview
+  const health = analytics?.healthScore
+  const budgetAlerts = analytics?.budgetAlerts ?? []
 
   return (
     <div className="flex-1 flex flex-col">
@@ -181,6 +184,100 @@ export default function DashboardPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Score de saúde financeira (#33) */}
+        {health && (
+          <div className="bg-white rounded-lg shadow-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-[14px] font-semibold text-ink">Score de Saúde Financeira</h2>
+                <p className="text-[11px] text-ink-3 mt-0.5">Baseado em poupança, orçamento, reserva e dívida</p>
+              </div>
+              <div className="text-center">
+                <p className={`text-3xl font-bold ${health.total >= 70 ? 'text-[#16A34A]' : health.total >= 45 ? 'text-[#D97706]' : 'text-[#E11D48]'}`}>
+                  {health.total}
+                </p>
+                <p className="text-[10px] text-ink-3">/ 100</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Poupança', score: health.breakdown.savings, max: 30, detail: `${health.savingsRate}% da renda` },
+                { label: 'Orçamento', score: health.breakdown.budget, max: 25, detail: health.budgetAdherence != null ? `${health.budgetAdherence}% dentro` : 'sem orçamento' },
+                { label: 'Fundo Emergência', score: health.breakdown.emergency, max: 25, detail: `${health.emergencyMonths}m cobertos` },
+                { label: 'Dívida', score: health.breakdown.debt, max: 20, detail: health.breakdown.debt >= 18 ? 'baixa' : health.breakdown.debt >= 10 ? 'moderada' : 'alta' },
+              ].map(({ label, score, max, detail }) => (
+                <div key={label} className="bg-slate-50 rounded-lg p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] font-bold text-ink-3 uppercase tracking-wide">{label}</p>
+                    <p className="text-[11px] font-semibold text-ink">{score}/{max}</p>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-1 mb-1">
+                    <div className={`h-1 rounded-full ${score / max >= 0.7 ? 'bg-[#16A34A]' : score / max >= 0.45 ? 'bg-[#D97706]' : 'bg-[#E11D48]'}`} style={{ width: `${(score / max) * 100}%` }} />
+                  </div>
+                  <p className="text-[10px] text-ink-3">{detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Revisão semanal (#30) */}
+        {weeklyReview && (weeklyReview.receitas > 0 || weeklyReview.despesas > 0) && (
+          <div className="bg-white rounded-lg shadow-card p-4">
+            <h2 className="text-[14px] font-semibold text-ink mb-3">Últimos 7 Dias</h2>
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="text-center">
+                <p className="text-[10px] text-ink-3 uppercase tracking-wide mb-0.5">Receitas</p>
+                <p className="text-[14px] font-bold text-[#16A34A]">{formatCurrency(weeklyReview.receitas)}</p>
+              </div>
+              <div className="text-center border-x border-slate-border">
+                <p className="text-[10px] text-ink-3 uppercase tracking-wide mb-0.5">Despesas</p>
+                <p className="text-[14px] font-bold text-[#E11D48]">{formatCurrency(weeklyReview.despesas)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-ink-3 uppercase tracking-wide mb-0.5">Saldo</p>
+                <p className={`text-[14px] font-bold ${weeklyReview.balance >= 0 ? 'text-[#0D9488]' : 'text-[#E11D48]'}`}>{formatCurrency(weeklyReview.balance)}</p>
+              </div>
+            </div>
+            {weeklyReview.topCategories.length > 0 && (
+              <div>
+                <p className="text-[11px] text-ink-3 mb-1.5">Top gastos da semana</p>
+                <div className="space-y-1">
+                  {weeklyReview.topCategories.map((cat) => (
+                    <div key={cat.category} className="flex items-center justify-between">
+                      <span className="text-[12px] text-ink">{cat.category}</span>
+                      <span className="text-[12px] font-medium text-ink">{formatCurrency(cat.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Alertas de orçamento (#20) */}
+        {budgetAlerts.length > 0 && (
+          <div className="bg-white rounded-lg shadow-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-border flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#D97706] animate-pulse" />
+              <h2 className="text-[14px] font-semibold text-ink">Alertas de Orçamento</h2>
+            </div>
+            <div>
+              {budgetAlerts.map((alert) => (
+                <div key={alert.category} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-border last:border-0">
+                  <span className="text-[12px] text-ink flex-1 truncate pr-2">{alert.category}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[12px] text-ink">{formatCurrency(alert.actual)}</span>
+                    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${alert.pct >= 100 ? 'bg-red-50 text-[#E11D48]' : 'bg-amber-50 text-[#D97706]'}`}>
+                      {alert.pct}%
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

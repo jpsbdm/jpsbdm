@@ -1,5 +1,20 @@
 import { PrismaClient } from '@prisma/client'
-import { inferAccountType, ACCOUNT_TYPE_COLORS } from '../lib/utils'
+
+// Inlined to avoid importing lib/utils (not present in Docker runner stage)
+function inferAccountType(name: string): string {
+  const l = name.toLowerCase()
+  if (l.includes('poupan') || l.includes('saving')) return 'poupanca'
+  if (l.includes('cartão') || l.includes('card') || l.includes('credit') || l.includes('qantas') || l.includes('zip')) return 'credito'
+  if (l.includes('empréstimo') || l.includes('loan') || l.includes('latitude') || l.includes('pessoal')) return 'emprestimo'
+  if (l.includes('dinheiro') || l.includes('cash')) return 'dinheiro'
+  if (l.includes('invest')) return 'investimento'
+  return 'corrente'
+}
+
+const ACCOUNT_COLORS: Record<string, string> = {
+  corrente: '#0D9488', poupanca: '#16A34A', credito: '#7C3AED',
+  emprestimo: '#E11D48', dinheiro: '#D97706', investimento: '#3B82F6',
+}
 
 const prisma = new PrismaClient()
 
@@ -84,7 +99,7 @@ async function main() {
         data: {
           name: bank,
           type,
-          color: ACCOUNT_TYPE_COLORS[type],
+          color: ACCOUNT_COLORS[type] ?? '#0D9488',
           initialBalance: balData?.amount ?? 0,
           initialDate: balData?.date ? new Date(balData.date) : new Date(),
         },
