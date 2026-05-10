@@ -10,7 +10,7 @@ services:
     env_file:
       - .env.local
     ports:
-      - '127.0.0.1:3099:3000' # Só localhost — NÃO exposta na internet
+      - '3099:3000' # Acessível na rede local; Cloudflare Tunnel protege o acesso externo
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/health']
       interval: 30s
