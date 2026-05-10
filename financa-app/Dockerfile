@@ -25,4 +25,4 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
 # Usa o prisma CLI do node_modules (versão 5.x compatível com o schema)
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
