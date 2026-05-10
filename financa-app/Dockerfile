@@ -15,14 +15,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Copia tudo necessário para rodar
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./
 
 EXPOSE 3000
-# Usa o prisma CLI do node_modules (versão 5.x compatível com o schema)
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
+# node_modules/.bin/prisma existe porque copiamos o node_modules completo
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/next start -p 3000"]
