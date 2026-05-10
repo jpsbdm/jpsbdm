@@ -83,6 +83,14 @@ export default function OrcamentoPage() {
       <Topbar title="Orçamento" />
       <div className="p-4 space-y-4">
 
+        {/* O que é o orçamento? */}
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+          <p className="text-[12px] font-bold text-blue-700 mb-1">O que é esta aba?</p>
+          <p className="text-[12px] text-ink-2">
+            Aqui você define um <strong>limite de gastos por categoria</strong> para cada mês. Por exemplo: "quero gastar no máximo $800 em Alimentação". O app compara o que você já gastou (vindo dos lançamentos) com o limite definido e avisa se passou. Clique no valor orçado de cada categoria para editar.
+          </p>
+        </div>
+
         {/* Resumo */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-lg shadow-card p-4">

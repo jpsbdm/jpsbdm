@@ -68,8 +68,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-2 pb-4 border-t border-white/10 pt-4">
+      {/* Logout + versão */}
+      <div className="px-2 pb-4 border-t border-white/10 pt-4 space-y-3">
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:bg-white/10 hover:text-white w-full text-[13px] font-medium transition-colors"
@@ -77,6 +77,9 @@ export function Sidebar() {
           <LogOut className="w-4 h-4 shrink-0" />
           <span>Sair</span>
         </button>
+        <p className="text-[10px] text-white/20 text-center tracking-wide select-none">
+          {process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev'}
+        </p>
       </div>
     </aside>
   )

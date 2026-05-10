@@ -5,17 +5,30 @@ import { SavingsGoal } from '@/types'
 import { Topbar } from '@/components/layout/Topbar'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { formatCurrency, formatDate, calcETA } from '@/lib/utils'
+import { Plus, Trash2, X } from 'lucide-react'
 
 const CARD_COLORS = [
   { accent: '#0D9488', light: '#CCFBF1', label: 'text-teal' },
   { accent: '#7C3AED', light: '#EDE9FE', label: 'text-purple-700' },
+  { accent: '#D97706', light: '#FEF3C7', label: 'text-amber-700' },
+  { accent: '#3B82F6', light: '#DBEAFE', label: 'text-blue-600' },
 ]
+
+interface NewGoalForm {
+  name: string
+  targetAmount: string
+  currentAmount: string
+  weeklyContrib: string
+}
 
 export default function PoupancaPage() {
   const [goals, setGoals] = useState<SavingsGoal[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Record<number, Partial<SavingsGoal>>>({})
   const [saving, setSaving] = useState<number | null>(null)
+  const [showNewForm, setShowNewForm] = useState(false)
+  const [newForm, setNewForm] = useState<NewGoalForm>({ name: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     fetch('/api/savings')
@@ -41,6 +54,34 @@ export default function PoupancaPage() {
 
   function updateField(id: number, field: keyof SavingsGoal, value: string | number) {
     setEditing((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  }
+
+  async function deleteGoal(id: number) {
+    if (!confirm('Excluir esta meta de poupança?')) return
+    await fetch(`/api/savings/${id}`, { method: 'DELETE' })
+    setGoals((prev) => prev.filter((g) => g.id !== id))
+  }
+
+  async function createGoal() {
+    if (!newForm.name.trim() || !newForm.targetAmount) return
+    setCreating(true)
+    const res = await fetch('/api/savings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newForm.name.trim(),
+        targetAmount: parseFloat(newForm.targetAmount) || 0,
+        currentAmount: parseFloat(newForm.currentAmount) || 0,
+        weeklyContrib: parseFloat(newForm.weeklyContrib) || 0,
+      }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setGoals((prev) => [...prev, data.goal])
+      setNewForm({ name: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
+      setShowNewForm(false)
+    }
+    setCreating(false)
   }
 
   const totalWeekly = goals.reduce((s, g) => s + g.weeklyContrib, 0)
@@ -69,37 +110,127 @@ export default function PoupancaPage() {
             <div className="w-6 h-6 border-2 border-teal border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          goals.map((goal, idx) => {
-            const color = CARD_COLORS[idx % CARD_COLORS.length]
-            const edits = editing[goal.id] ?? {}
-            const current = Number(edits.currentAmount ?? goal.currentAmount)
-            const target = Number(edits.targetAmount ?? goal.targetAmount)
-            const weekly = Number(edits.weeklyContrib ?? goal.weeklyContrib)
-            const { weeks, eta } = calcETA(current, target, weekly)
-            const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0
+          <>
+            {goals.map((goal, idx) => {
+              const color = CARD_COLORS[idx % CARD_COLORS.length]
+              const edits = editing[goal.id] ?? {}
+              const current = Number(edits.currentAmount ?? goal.currentAmount)
+              const target = Number(edits.targetAmount ?? goal.targetAmount)
+              const weekly = Number(edits.weeklyContrib ?? goal.weeklyContrib)
+              const { weeks, eta } = calcETA(current, target, weekly)
+              const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0
 
-            return (
-              <div key={goal.id} className="bg-white rounded-xl shadow-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-border" style={{ borderLeftWidth: 4, borderLeftColor: color.accent }}>
-                  <input
-                    type="text"
-                    value={String(edits.name ?? goal.name)}
-                    onChange={(e) => updateField(goal.id, 'name', e.target.value)}
-                    onBlur={() => saveGoal(goal.id)}
-                    className="text-[15px] font-semibold text-ink bg-transparent border-b border-transparent hover:border-slate-border focus:border-teal focus:outline-none w-full"
-                  />
-                </div>
-                <div className="p-4 space-y-4">
-                  {/* Barra de progresso */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-ink-3">Progresso</span>
-                      <span className="font-semibold" style={{ color: color.accent }}>{pct.toFixed(1)}%</span>
-                    </div>
-                    <ProgressBar value={current} max={target || 1} color={color.accent} height="thick" />
+              return (
+                <div key={goal.id} className="bg-white rounded-xl shadow-card overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-border flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftColor: color.accent }}>
+                    <input
+                      type="text"
+                      value={String(edits.name ?? goal.name)}
+                      onChange={(e) => updateField(goal.id, 'name', e.target.value)}
+                      onBlur={() => saveGoal(goal.id)}
+                      className="text-[15px] font-semibold text-ink bg-transparent border-b border-transparent hover:border-slate-border focus:border-teal focus:outline-none flex-1"
+                    />
+                    <button
+                      onClick={() => deleteGoal(goal.id)}
+                      className="p-1.5 rounded hover:bg-red-50 text-ink-3 hover:text-[#E11D48] shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+                  <div className="p-4 space-y-4">
+                    {/* Barra de progresso */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-ink-3">Progresso</span>
+                        <span className="font-semibold" style={{ color: color.accent }}>{pct.toFixed(1)}%</span>
+                      </div>
+                      <ProgressBar value={current} max={target || 1} color={color.accent} height="thick" />
+                    </div>
 
-                  {/* Campos editáveis */}
+                    {/* Campos editáveis */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] text-ink-3 mb-0.5 block">Saldo atual (AUD$)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={String(edits.currentAmount ?? goal.currentAmount)}
+                          onChange={(e) => updateField(goal.id, 'currentAmount', parseFloat(e.target.value))}
+                          onBlur={() => saveGoal(goal.id)}
+                          className="input-field w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-ink-3 mb-0.5 block">Meta (AUD$)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={String(edits.targetAmount ?? goal.targetAmount)}
+                          onChange={(e) => updateField(goal.id, 'targetAmount', parseFloat(e.target.value))}
+                          onBlur={() => saveGoal(goal.id)}
+                          className="input-field w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-ink-3 mb-0.5 block">Contribuição semanal</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="10"
+                          value={String(edits.weeklyContrib ?? goal.weeklyContrib)}
+                          onChange={(e) => updateField(goal.id, 'weeklyContrib', parseFloat(e.target.value))}
+                          onBlur={() => saveGoal(goal.id)}
+                          className="input-field w-full"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Stats rápidos */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        ['Falta', formatCurrency(Math.max(0, target - current))],
+                        ['Semanas', current >= target ? 'Meta atingida!' : weeks ? String(weeks) : '—'],
+                        ['ETA', current >= target ? '🎉' : eta ? formatDate(eta) : '—'],
+                        ['Anual', formatCurrency(weekly * 52)],
+                      ].map(([label, val]) => (
+                        <div key={label} className="bg-slate-50 rounded-lg p-2.5">
+                          <p className="text-[9.5px] font-bold text-ink-3 uppercase tracking-wide mb-0.5">{label}</p>
+                          <p className="text-[13px] font-bold text-ink">{val}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {saving === goal.id && (
+                      <p className="text-[11px] text-ink-3 text-right">Salvando...</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Formulário nova meta */}
+            {showNewForm ? (
+              <div className="bg-white rounded-xl shadow-card overflow-hidden border border-teal">
+                <div className="px-4 py-3 border-b border-slate-border flex items-center justify-between">
+                  <h3 className="text-[14px] font-semibold text-ink">Nova Meta de Poupança</h3>
+                  <button onClick={() => setShowNewForm(false)} className="p-1 rounded hover:bg-slate-100">
+                    <X className="w-4 h-4 text-ink-3" />
+                  </button>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <label className="text-[11px] text-ink-3 mb-0.5 block">Nome da meta</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Viagem ao Brasil, Reserva de Emergência"
+                      value={newForm.name}
+                      onChange={(e) => setNewForm((p) => ({ ...p, name: e.target.value }))}
+                      className="input-field w-full"
+                      autoFocus
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] text-ink-3 mb-0.5 block">Saldo atual (AUD$)</label>
@@ -107,9 +238,9 @@ export default function PoupancaPage() {
                         type="number"
                         min="0"
                         step="1"
-                        value={String(edits.currentAmount ?? goal.currentAmount)}
-                        onChange={(e) => updateField(goal.id, 'currentAmount', parseFloat(e.target.value))}
-                        onBlur={() => saveGoal(goal.id)}
+                        placeholder="0"
+                        value={newForm.currentAmount}
+                        onChange={(e) => setNewForm((p) => ({ ...p, currentAmount: e.target.value }))}
                         className="input-field w-full"
                       />
                     </div>
@@ -119,9 +250,9 @@ export default function PoupancaPage() {
                         type="number"
                         min="0"
                         step="100"
-                        value={String(edits.targetAmount ?? goal.targetAmount)}
-                        onChange={(e) => updateField(goal.id, 'targetAmount', parseFloat(e.target.value))}
-                        onBlur={() => saveGoal(goal.id)}
+                        placeholder="5000"
+                        value={newForm.targetAmount}
+                        onChange={(e) => setNewForm((p) => ({ ...p, targetAmount: e.target.value }))}
                         className="input-field w-full"
                       />
                     </div>
@@ -131,36 +262,34 @@ export default function PoupancaPage() {
                         type="number"
                         min="0"
                         step="10"
-                        value={String(edits.weeklyContrib ?? goal.weeklyContrib)}
-                        onChange={(e) => updateField(goal.id, 'weeklyContrib', parseFloat(e.target.value))}
-                        onBlur={() => saveGoal(goal.id)}
+                        placeholder="100"
+                        value={newForm.weeklyContrib}
+                        onChange={(e) => setNewForm((p) => ({ ...p, weeklyContrib: e.target.value }))}
                         className="input-field w-full"
                       />
                     </div>
                   </div>
-
-                  {/* Stats rápidos */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      ['Falta', formatCurrency(Math.max(0, target - current))],
-                      ['Semanas', current >= target ? 'Meta atingida!' : weeks ? String(weeks) : '—'],
-                      ['ETA', current >= target ? '🎉' : eta ? formatDate(eta) : '—'],
-                      ['Anual', formatCurrency(weekly * 52)],
-                    ].map(([label, val]) => (
-                      <div key={label} className="bg-slate-50 rounded-lg p-2.5">
-                        <p className="text-[9.5px] font-bold text-ink-3 uppercase tracking-wide mb-0.5">{label}</p>
-                        <p className="text-[13px] font-bold text-ink">{val}</p>
-                      </div>
-                    ))}
+                  <div className="flex gap-3 pt-1">
+                    <button onClick={() => setShowNewForm(false)} className="btn-secondary flex-1">Cancelar</button>
+                    <button
+                      onClick={createGoal}
+                      disabled={creating || !newForm.name.trim() || !newForm.targetAmount}
+                      className="btn-primary flex-1"
+                    >
+                      {creating ? 'Criando...' : 'Criar Meta'}
+                    </button>
                   </div>
-
-                  {saving === goal.id && (
-                    <p className="text-[11px] text-ink-3 text-right">Salvando...</p>
-                  )}
                 </div>
               </div>
-            )
-          })
+            ) : (
+              <button
+                onClick={() => setShowNewForm(true)}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-slate-border text-ink-3 hover:border-teal hover:text-teal transition-colors flex items-center justify-center gap-2 text-[13px] font-medium"
+              >
+                <Plus className="w-4 h-4" /> Nova Meta de Poupança
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

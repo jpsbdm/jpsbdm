@@ -28,3 +28,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   return NextResponse.json({ goal })
 }
+
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  const id = parseInt(params.id)
+  if (isNaN(id)) return NextResponse.json({ error: 'ID inválido.' }, { status: 400 })
+  await prisma.savingsGoal.delete({ where: { id } })
+  return NextResponse.json({ ok: true })
+}

@@ -62,6 +62,13 @@ export interface ParsedTransaction {
   isDuplicate?: boolean
 }
 
+export interface AccountBalance {
+  bank: string
+  initialAmount: number
+  initialDate: string
+  currentBalance: number
+}
+
 export interface DashboardData {
   kpis: {
     receitas: number
@@ -89,6 +96,7 @@ export interface DashboardData {
     poupanca: number
     totalReceita: number
   }
+  accountBalances: AccountBalance[]
 }
 
 export interface PaginatedResponse<T> {

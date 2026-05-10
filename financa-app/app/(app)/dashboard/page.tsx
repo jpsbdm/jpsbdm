@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useFilterStore } from '@/lib/store'
-import { DashboardData } from '@/types'
+import { DashboardData, AccountBalance } from '@/types'
 import { Topbar } from '@/components/layout/Topbar'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { ProgressBar } from '@/components/shared/ProgressBar'
@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
   if (!data) return null
 
-  const { kpis, trend, categories, companies, recentTransactions, analysis5030 } = data
+  const { kpis, trend, categories, companies, recentTransactions, analysis5030, accountBalances } = data
   const { necessidades, desejos, poupanca, totalReceita } = analysis5030
 
   return (
@@ -148,6 +148,37 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {/* Saldos das Contas */}
+        {accountBalances && accountBalances.length > 0 && (
+          <div className="bg-white rounded-lg shadow-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-border">
+              <h2 className="text-[14px] font-semibold text-ink">Saldos das Contas</h2>
+              <p className="text-[11px] text-ink-3 mt-0.5">Saldo inicial + movimentações registradas</p>
+            </div>
+            <div>
+              {accountBalances.map((acc: AccountBalance) => {
+                const isDebt = acc.currentBalance < 0
+                return (
+                  <div key={acc.bank} className="flex items-center justify-between px-4 py-3 border-b border-slate-border last:border-0">
+                    <div>
+                      <p className="text-[13px] font-medium text-ink">{acc.bank}</p>
+                      <p className="text-[11px] text-ink-3">desde {new Date(acc.initialDate).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-[15px] font-bold ${isDebt ? 'text-[#E11D48]' : 'text-[#16A34A]'}`}>
+                        {formatCurrency(acc.currentBalance)}
+                      </p>
+                      {acc.initialAmount !== acc.currentBalance && (
+                        <p className="text-[10px] text-ink-3">inicial: {formatCurrency(acc.initialAmount)}</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Lançamentos recentes */}
         {recentTransactions.length > 0 && (

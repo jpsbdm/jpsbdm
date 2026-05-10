@@ -9,14 +9,14 @@ import { Transaction, TransactionType, EmpresaType } from '@/types'
 import { useDescriptionHistory } from '@/lib/store'
 
 const schema = z.object({
-  date: z.string().min(1, 'Data obrigatória'),
-  description: z.string().min(1, 'Descrição obrigatória'),
-  bank: z.string().min(1, 'Banco obrigatório'),
   type: z.enum(['Despesa', 'Receita', 'Transferência']),
+  date: z.string().min(1, 'Data obrigatória'),
+  amount: z.string().min(1, 'Valor obrigatório').refine((v) => parseFloat(v) > 0, 'Valor deve ser positivo'),
+  description: z.string().min(1, 'Descrição obrigatória'),
+  bank: z.string().min(1, 'Conta obrigatória'),
   category: z.string().min(1, 'Categoria obrigatória'),
   subcategory: z.string().default(''),
   empresa: z.enum(['Pessoal', 'Marmitas', 'Personal Chef']),
-  amount: z.string().min(1, 'Valor obrigatório').refine((v) => parseFloat(v) > 0, 'Valor deve ser positivo'),
   notes: z.string().default(''),
 })
 
@@ -28,6 +28,12 @@ interface Props {
   onCancel: () => void
 }
 
+const TYPE_OPTIONS: { value: TransactionType; label: string; color: string }[] = [
+  { value: 'Despesa', label: 'Despesa', color: 'bg-red-50 border-[#E11D48] text-[#E11D48]' },
+  { value: 'Receita', label: 'Receita', color: 'bg-teal-light border-teal text-teal' },
+  { value: 'Transferência', label: 'Transferência', color: 'bg-slate-50 border-slate-400 text-ink-2' },
+]
+
 export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
   const [banks, setBanks] = useState<string[]>([])
   const [categories, setCategories] = useState<Record<string, string[]>>({})
@@ -36,21 +42,22 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const { history, addDescription } = useDescriptionHistory()
 
-  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      type: (initial?.type ?? 'Despesa') as TransactionType,
       date: initial ? format(new Date(initial.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      amount: initial ? String(initial.amount) : '',
       description: initial?.description ?? '',
       bank: initial?.bank ?? '',
-      type: (initial?.type ?? 'Despesa') as TransactionType,
       category: initial?.category ?? '',
       subcategory: initial?.subcategory ?? '',
       empresa: (initial?.empresa ?? 'Pessoal') as EmpresaType,
-      amount: initial ? String(initial.amount) : '',
       notes: initial?.notes ?? '',
     },
   })
 
+  const selectedType = watch('type')
   const selectedCategory = useWatch({ control, name: 'category' })
 
   useEffect(() => {
@@ -95,36 +102,45 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Data */}
+
+      {/* Tipo — botões de toggle */}
       <div>
-        <label className="block text-xs font-medium text-ink-2 mb-1">Data</label>
-        <input type="date" {...register('date')} className="input-field w-full" />
-        {errors.date && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.date.message}</p>}
+        <label className="block text-xs font-medium text-ink-2 mb-1.5">Tipo</label>
+        <div className="grid grid-cols-3 gap-2">
+          {TYPE_OPTIONS.map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex items-center justify-center py-2 rounded-lg border-2 cursor-pointer text-[13px] font-semibold transition-all ${
+                selectedType === opt.value ? opt.color : 'bg-white border-slate-border text-ink-3'
+              }`}
+            >
+              <input type="radio" value={opt.value} {...register('type')} className="sr-only" />
+              {opt.label}
+            </label>
+          ))}
+        </div>
       </div>
 
-      {/* Tipo */}
-      <div>
-        <label className="block text-xs font-medium text-ink-2 mb-1">Tipo</label>
-        <select {...register('type')} className="input-field w-full">
-          <option value="Despesa">Despesa</option>
-          <option value="Receita">Receita</option>
-          <option value="Transferência">Transferência</option>
-        </select>
-      </div>
-
-      {/* Valor */}
-      <div>
-        <label className="block text-xs font-medium text-ink-2 mb-1">Valor (AUD$)</label>
-        <input
-          type="number"
-          step="0.01"
-          min="0.01"
-          inputMode="decimal"
-          placeholder="0.00"
-          {...register('amount')}
-          className="input-field w-full"
-        />
-        {errors.amount && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.amount.message}</p>}
+      {/* Data + Valor na mesma linha */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-ink-2 mb-1">Data</label>
+          <input type="date" {...register('date')} className="input-field w-full" />
+          {errors.date && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.date.message}</p>}
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-ink-2 mb-1">Valor (AUD$)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            inputMode="decimal"
+            placeholder="0.00"
+            {...register('amount')}
+            className="input-field w-full"
+          />
+          {errors.amount && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.amount.message}</p>}
+        </div>
       </div>
 
       {/* Descrição com autocomplete */}
@@ -154,11 +170,11 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         {errors.description && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.description.message}</p>}
       </div>
 
-      {/* Banco */}
+      {/* Conta (Banco) */}
       <div>
-        <label className="block text-xs font-medium text-ink-2 mb-1">Banco</label>
+        <label className="block text-xs font-medium text-ink-2 mb-1">Conta / Cartão</label>
         <select {...register('bank')} className="input-field w-full">
-          <option value="">Selecione o banco</option>
+          <option value="">Selecione a conta</option>
           {banks.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
         {errors.bank && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.bank.message}</p>}
@@ -174,7 +190,7 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         {errors.category && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.category.message}</p>}
       </div>
 
-      {/* Subcategoria */}
+      {/* Subcategoria — aparece apenas se existir */}
       {subcategories.length > 0 && (
         <div>
           <label className="block text-xs font-medium text-ink-2 mb-1">Subcategoria</label>
