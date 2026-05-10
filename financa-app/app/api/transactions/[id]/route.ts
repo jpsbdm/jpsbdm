@@ -6,6 +6,7 @@ const updateSchema = z.object({
   date: z.string().optional(),
   description: z.string().min(1).optional(),
   bank: z.string().optional(),
+  toBank: z.string().optional().nullable(),
   type: z.enum(['Despesa', 'Receita', 'Transferência']).optional(),
   category: z.string().optional(),
   subcategory: z.string().optional(),

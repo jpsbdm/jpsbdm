@@ -6,6 +6,7 @@ on:
       - main
       - claude/review-finance-app-plan-nj2zM
       - claude/fix-savings-transactions-ckXKG
+      - claude/pr1-contas-transferencias
       - claude/pr2-analytics-insights
     paths:
       - 'financa-app/**'

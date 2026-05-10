@@ -1,12 +1,14 @@
 export type TransactionType = 'Despesa' | 'Receita' | 'Transferência'
 export type EmpresaType = 'Pessoal' | 'Marmitas' | 'Personal Chef'
 export type BankSource = 'CBA' | 'ANZ' | 'Qantas' | 'Manual'
+export type AccountType = 'corrente' | 'poupanca' | 'credito' | 'emprestimo' | 'dinheiro' | 'investimento'
 
 export interface Transaction {
   id: number
-  date: string // ISO string
+  date: string
   description: string
   bank: string
+  toBank?: string | null
   type: TransactionType
   category: string
   subcategory: string
@@ -16,6 +18,23 @@ export interface Transaction {
   exported: boolean
   importedFrom?: string | null
   externalRef?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Account {
+  id: number
+  name: string
+  type: AccountType
+  color: string
+  initialBalance: number
+  initialDate: string
+  creditLimit?: number | null
+  interestRate?: number | null
+  minimumPayment?: number | null
+  dueDay?: number | null
+  isActive: boolean
+  currentBalance: number   // calculado pela API
   createdAt: string
   updatedAt: string
 }
@@ -54,7 +73,6 @@ export interface ParsedTransaction {
   bank: string
   source: BankSource
   externalRef: string
-  // campos para preenchimento pelo usuário
   category?: string
   subcategory?: string
   empresa?: EmpresaType
@@ -97,6 +115,7 @@ export interface DashboardData {
     totalReceita: number
   }
   accountBalances: AccountBalance[]
+  netWorth: number
 }
 
 export interface PaginatedResponse<T> {
@@ -108,6 +127,19 @@ export interface PaginatedResponse<T> {
 
 export interface ApiError {
   error: string
+}
+
+export interface DebtPayoffResult {
+  method: 'avalanche' | 'bola-de-neve'
+  order: Array<{
+    name: string
+    balance: number
+    interestRate: number
+    monthsPaidOff: number
+    totalInterest: number
+  }>
+  totalMonths: number
+  totalInterest: number
 }
 
 export interface ComparisonItem {

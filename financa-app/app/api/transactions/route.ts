@@ -9,6 +9,7 @@ const createSchema = z.object({
   date: z.string(),
   description: z.string().min(1),
   bank: z.string().min(1),
+  toBank: z.string().optional().nullable(),
   type: z.enum(['Despesa', 'Receita', 'Transferência']),
   category: z.string().min(1),
   subcategory: z.string().default(''),

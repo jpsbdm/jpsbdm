@@ -13,22 +13,39 @@ model Transaction {
   date         DateTime
   description  String
   bank         String
+  toBank       String?  // destino em transferências
   type         String   // 'Despesa' | 'Receita' | 'Transferência'
   category     String
   subcategory  String   @default("")
   empresa      String   // 'Pessoal' | 'Marmitas' | 'Personal Chef'
-  amount       Float    // sempre positivo; type define se é saída ou entrada
+  amount       Float
   notes        String   @default("")
   exported     Boolean  @default(false)
-  importedFrom String?  // 'CBA' | 'ANZ' | 'Qantas' | 'Manual'
-  externalRef  String?  // hash único do banco para evitar duplicatas
+  importedFrom String?
+  externalRef  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
+model Account {
+  id             Int      @id @default(autoincrement())
+  name           String
+  type           String   // 'corrente' | 'poupanca' | 'credito' | 'emprestimo' | 'dinheiro' | 'investimento'
+  color          String   @default("#0D9488")
+  initialBalance Float    @default(0)
+  initialDate    DateTime @default(now())
+  creditLimit    Float?   // para cartões de crédito
+  interestRate   Float?   // % ao ano (para crédito/empréstimo)
+  minimumPayment Float?   // parcela mínima mensal
+  dueDay         Int?     // dia do vencimento (1-31)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 model Budget {
   id       Int    @id @default(autoincrement())
-  month    Int    // 1-12
+  month    Int
   year     Int
   category String
   amount   Float
@@ -49,7 +66,7 @@ model SavingsGoal {
 model AllowedDevice {
   id          Int      @id @default(autoincrement())
   fingerprint String   @unique
-  name        String   // 'iPhone', 'MacBook', etc.
+  name        String
   lastSeen    DateTime @default(now())
   createdAt   DateTime @default(now())
 }
@@ -64,7 +81,7 @@ model AppSession {
 
 model Settings {
   id              Int    @id @default(1)
-  banks           String @default("[]")       // JSON array de strings
-  categories      String @default("{}")       // JSON object categoria -> subcategorias[]
-  initialBalances String @default("{}")       // JSON object banco -> { amount: number, date: string }
+  banks           String @default("[]")
+  categories      String @default("{}")
+  initialBalances String @default("{}")
 }

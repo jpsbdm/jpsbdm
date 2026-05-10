@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import { inferAccountType, ACCOUNT_TYPE_COLORS } from '../lib/utils'
 
 const prisma = new PrismaClient()
 
@@ -36,13 +36,10 @@ const defaultBanks = [
 ]
 
 async function main() {
-  // Cria Settings padrão
-  await prisma.settings.upsert({
+  // Settings
+  const settings = await prisma.settings.upsert({
     where: { id: 1 },
-    update: {
-      banks: JSON.stringify(defaultBanks),
-      categories: JSON.stringify(defaultCategories),
-    },
+    update: {},
     create: {
       id: 1,
       banks: JSON.stringify(defaultBanks),
@@ -50,34 +47,52 @@ async function main() {
     },
   })
 
-  // Cria metas de poupança iniciais
+  // Garante que todos os defaultBanks estão na lista
+  const currentBanks: string[] = JSON.parse(settings.banks)
+  const mergedBanks = Array.from(new Set([...currentBanks, ...defaultBanks]))
+  if (mergedBanks.length !== currentBanks.length) {
+    await prisma.settings.update({
+      where: { id: 1 },
+      data: { banks: JSON.stringify(mergedBanks) },
+    })
+  }
+
+  // Metas de poupança
   const goalsCount = await prisma.savingsGoal.count()
   if (goalsCount === 0) {
     await prisma.savingsGoal.createMany({
       data: [
-        {
-          name: 'Fundo de Emergência',
-          currentAmount: 0,
-          targetAmount: 15000,
-          weeklyContrib: 200,
-          startDate: new Date(),
-        },
-        {
-          name: 'Viagem / Objetivo 2',
-          currentAmount: 0,
-          targetAmount: 5000,
-          weeklyContrib: 100,
-          startDate: new Date(),
-        },
+        { name: 'Fundo de Emergência', currentAmount: 0, targetAmount: 15000, weeklyContrib: 200, startDate: new Date() },
+        { name: 'Viagem / Objetivo 2', currentAmount: 0, targetAmount: 5000, weeklyContrib: 100, startDate: new Date() },
       ],
     })
   }
 
-  console.log('✅ Seed completo — settings e metas criadas')
-  console.log('')
-  console.log('⚠️  Para adicionar seu dispositivo, acesse /config/devices após o primeiro login.')
-  console.log('   Nenhum dispositivo foi adicionado automaticamente — o primeiro login requer')
-  console.log('   que NEXT_PUBLIC_SKIP_DEVICE_CHECK=true esteja no .env.local (apenas em dev).')
+  // Contas — migra de Settings.initialBalances se não houver nenhuma
+  const accountCount = await prisma.account.count()
+  if (accountCount === 0) {
+    const freshSettings = await prisma.settings.findUnique({ where: { id: 1 } })
+    const banks: string[] = JSON.parse(freshSettings?.banks ?? '[]')
+    const initialBalances: Record<string, { amount: number; date: string }> =
+      JSON.parse(freshSettings?.initialBalances ?? '{}')
+
+    for (const bank of banks) {
+      if (bank === 'Outro') continue
+      const type = inferAccountType(bank)
+      const balData = initialBalances[bank]
+      await prisma.account.create({
+        data: {
+          name: bank,
+          type,
+          color: ACCOUNT_TYPE_COLORS[type],
+          initialBalance: balData?.amount ?? 0,
+          initialDate: balData?.date ? new Date(balData.date) : new Date(),
+        },
+      })
+    }
+  }
+
+  console.log('✅ Seed completo')
 }
 
 main()
