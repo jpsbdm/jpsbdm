@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useFilterStore } from '@/lib/store'
-import { DashboardData, AccountBalance } from '@/types'
+import { DashboardData, AccountBalance, AnalyticsData } from '@/types'
 import { Topbar } from '@/components/layout/Topbar'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { ProgressBar } from '@/components/shared/ProgressBar'
@@ -19,13 +19,16 @@ const DONUT_COLORS = ['#0D9488', '#E11D48', '#D97706', '#7C3AED', '#EA580C', '#1
 export default function DashboardPage() {
   const { month, year } = useFilterStore()
   const [data, setData] = useState<DashboardData | null>(null)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/dashboard?month=${month}&year=${year}`)
-      .then((r) => r.json())
-      .then(setData)
+    Promise.all([
+      fetch(`/api/dashboard?month=${month}&year=${year}`).then((r) => r.json()),
+      fetch(`/api/analytics?month=${month}&year=${year}`).then((r) => r.json()),
+    ])
+      .then(([dash, anal]) => { setData(dash); setAnalytics(anal) })
       .finally(() => setLoading(false))
   }, [month, year])
 
@@ -44,6 +47,8 @@ export default function DashboardPage() {
 
   const { kpis, trend, categories, companies, recentTransactions, analysis5030, accountBalances } = data
   const { necessidades, desejos, poupanca, totalReceita } = analysis5030
+  const topComparison = (analytics?.comparison ?? []).slice(0, 5)
+  const subs = (analytics?.subscriptions ?? []).slice(0, 5)
 
   return (
     <div className="flex-1 flex flex-col">
@@ -176,6 +181,60 @@ export default function DashboardPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Comparativo mês a mês */}
+        {topComparison.length > 0 && (
+          <div className="bg-white rounded-lg shadow-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-border">
+              <h2 className="text-[14px] font-semibold text-ink">Comparativo Mensal</h2>
+              <p className="text-[11px] text-ink-3 mt-0.5">Gastos por categoria: mês atual vs mês anterior</p>
+            </div>
+            <div>
+              {topComparison.map((item) => (
+                <div key={item.category} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-border last:border-0">
+                  <span className="text-[12px] text-ink flex-1 min-w-0 truncate pr-2">{item.category}</span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-[12px] font-semibold text-ink">{formatCurrency(item.current)}</span>
+                    {item.pct !== null && (
+                      <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
+                        item.diff > 0 ? 'bg-red-50 text-[#E11D48]' : 'bg-green-50 text-[#16A34A]'
+                      }`}>
+                        {item.diff > 0 ? '+' : ''}{item.pct}%
+                      </span>
+                    )}
+                    {item.pct === null && item.previous === 0 && (
+                      <span className="text-[11px] text-ink-3 bg-slate-100 px-1.5 py-0.5 rounded-full">novo</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Assinaturas detectadas */}
+        {subs.length > 0 && (
+          <div className="bg-white rounded-lg shadow-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-border">
+              <h2 className="text-[14px] font-semibold text-ink">Assinaturas Detectadas</h2>
+              <p className="text-[11px] text-ink-3 mt-0.5">Cobranças que se repetem em 2+ meses</p>
+            </div>
+            <div>
+              {subs.map((sub, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-border last:border-0">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-[12px] font-medium text-ink truncate">{sub.description}</p>
+                    <p className="text-[11px] text-ink-3">{sub.bank} · {sub.monthsDetected} meses</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[12px] font-semibold text-ink">{formatCurrency(sub.monthlyAvg)}/mês</p>
+                    <p className="text-[11px] text-ink-3">{formatCurrency(sub.yearlyEstimate)}/ano</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

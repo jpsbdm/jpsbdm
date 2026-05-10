@@ -109,3 +109,38 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   error: string
 }
+
+export interface ComparisonItem {
+  category: string
+  current: number
+  previous: number
+  diff: number
+  pct: number | null
+}
+
+export interface SubscriptionItem {
+  description: string
+  bank: string
+  category: string
+  monthlyAvg: number
+  yearlyEstimate: number
+  monthsDetected: number
+}
+
+export interface EmergencyFundData {
+  avg3Months: number
+  avg6Months: number
+  fund3x3: number
+  fund3x6: number
+  fund6x3: number
+  fund6x6: number
+  basedOnMonths3: number
+  basedOnMonths6: number
+}
+
+export interface AnalyticsData {
+  comparison: ComparisonItem[]
+  categoryAverages: Record<string, number>
+  subscriptions: SubscriptionItem[]
+  emergencyFund: EmergencyFundData
+}
