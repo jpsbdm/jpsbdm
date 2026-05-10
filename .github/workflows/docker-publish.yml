@@ -9,6 +9,7 @@ on:
       - claude/pr1-contas-transferencias
       - claude/pr2-analytics-insights
       - claude/pr3-pr4-combined
+      - claude/fix-typescript-build
     paths:
       - 'financa-app/**'
     tags:
