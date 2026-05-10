@@ -162,6 +162,33 @@ export default function ConfigPage() {
           </div>
         </section>
 
+        {/* Dicas Australia */}
+        <section>
+          <h2 className="text-[14px] font-semibold text-ink mb-3">Informações Fiscais — Austrália</h2>
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-2.5">
+            <div>
+              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-0.5">Superannuation</p>
+              <p className="text-[12px] text-ink-2">11.5% obrigatório sobre salário bruto (2024–25). Salary sacrifice reduz imposto de renda — consulte seu empregador.</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-0.5">Ano Fiscal</p>
+              <p className="text-[12px] text-ink-2">1 Jul → 30 Jun. Prazo declaração ATO: 31 de outubro (ou até maio via tax agent).</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-0.5">ABN — Personal Chef & Marmitas</p>
+              <p className="text-[12px] text-ink-2">Declare toda receita. Deduza insumos, embalagens, transporte de entrega, equipamentos e marketing como despesas do negócio.</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-0.5">Medicare Levy</p>
+              <p className="text-[12px] text-ink-2">2% sobre renda tributável. Isenção parcial para renda baixa — verifique thresholds anuais no ato.gov.au.</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-0.5">Poupança de Alto Rendimento</p>
+              <p className="text-[12px] text-ink-2">ING Savings Maximiser · Macquarie Savings · Rabobank HISA — compare em canstarblue.com.au. Automatize via BPAY toda sexta.</p>
+            </div>
+          </div>
+        </section>
+
         {/* Backup */}
         <section>
           <h2 className="text-[14px] font-semibold text-ink mb-3">Backup</h2>

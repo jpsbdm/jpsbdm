@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     where.description = { contains: search }
   }
 
-  const [total, data] = await Promise.all([
+  const [total, data, aggReceita, aggDespesa] = await Promise.all([
     prisma.transaction.count({ where }),
     prisma.transaction.findMany({
       where,
@@ -56,6 +56,8 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
+    prisma.transaction.aggregate({ where: { ...where, type: 'Receita' }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { ...where, type: 'Despesa' }, _sum: { amount: true } }),
   ])
 
   return NextResponse.json({
@@ -63,6 +65,8 @@ export async function GET(request: NextRequest) {
     total,
     pages: Math.ceil(total / PAGE_SIZE),
     page,
+    totalReceita: aggReceita._sum.amount ?? 0,
+    totalDespesa: aggDespesa._sum.amount ?? 0,
   })
 }
 

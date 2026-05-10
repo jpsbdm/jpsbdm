@@ -4,57 +4,29 @@ import bcrypt from 'bcrypt'
 const prisma = new PrismaClient()
 
 const defaultCategories: Record<string, string[]> = {
-  // 1 - Despesas Não Obrigatórias
-  'Assinaturas e Serviços': [],
-  'Compras': [],
-  'Esportes': [],
-  'Lazer': [],
-  'Outros': [],
-  'Presentes e Doações': [],
-  'Restaurantes': [],
-  'Tarifas Bancárias': [],
-  'Vestuário': [],
-  'Viagens': [],
-  // 2 - Despesas Obrigatórias
-  'Alimentação': [],
-  'Casa': [],
-  'Casa de Veraneio': [],
-  'Cuidados Pessoais': [],
-  'Despesas Médicas': [],
-  'Educação': [],
-  'Filhos e Família': [],
-  'Impostos e Taxas': [],
-  'Mercado': [],
-  'Pets': [],
-  'Prestadores de Serviços': [],
-  'Profissional e Trabalho': [],
-  'Saúde': [],
-  'Seguro': [],
-  'Serviços Financeiros': [],
-  'Transporte': [],
-  // 3 - Dívida
-  'Dívidas e Empréstimos': [],
-  // 4 - Empresa e Autônomos
-  'Colaboradores': [],
-  'Ferramentas': [],
-  'Infraestrutura': [],
-  'Insumos e Outros': [],
-  'Marketing': [],
-  'Meios de Pagamento': [],
-  'Prestadores de Serviço - Empresa': [],
-  'Taxas e Impostos - Empresa': [],
-  // 5 - Renda
-  'Outras Fontes de Renda': [],
-  'Renda Cliente': [],
-  'Renda Cônjuge': [],
+  'Despesas não Obrigatórias': [
+    'Assinaturas e Serviços', 'Compras', 'Esportes', 'Lazer', 'Outros',
+    'Presentes e Doações', 'Restaurantes', 'Tarifas Bancárias', 'Vestuário', 'Viagens',
+  ],
+  'Despesas Obrigatórias': [
+    'Alimentação', 'Casa', 'Casa de Veraneio', 'Cuidados Pessoais', 'Despesas Médicas',
+    'Educação', 'Filhos e Família', 'Impostos e Taxas', 'Mercado', 'Pets',
+    'Prestadores de Serviços', 'Profissional e Trabalho', 'Saúde', 'Seguro',
+    'Serviços Financeiros', 'Transporte',
+  ],
+  'Dívida': ['Dívidas e Empréstimos'],
+  'Empresa e Autônomos': [
+    'Colaboradores', 'Ferramentas', 'Infraestrutura', 'Insumos e Outros', 'Marketing',
+    'Meios de Pagamento', 'Prestadores de Serviço - Empresa', 'Taxas e Impostos - Empresa',
+  ],
+  'Renda': ['Outras Fontes de Renda', 'Renda Cliente', 'Renda Cônjuge / Negócios'],
 }
 
 const defaultBanks = [
   'CBA - Conta Corrente',
-  'CBA - Savings',
+  'CBA - Poupança',
   'ANZ - Conta Corrente',
-  'ANZ - Savings',
-  'Qantas Money',
+  'Qantas Money - Cartão',
   'Dinheiro',
   'Outro',
 ]

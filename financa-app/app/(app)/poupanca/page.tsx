@@ -137,16 +137,21 @@ export default function PoupancaPage() {
                         className="input-field w-full"
                       />
                     </div>
-                    <div>
-                      <label className="text-[11px] text-ink-3 mb-0.5 block">ETA</label>
-                      <div className="input-field bg-slate-50 text-ink-3 text-[12px]">
-                        {current >= target
-                          ? '🎉 Meta atingida!'
-                          : eta
-                          ? `${weeks} sem. · ${formatDate(eta)}`
-                          : 'Defina contribuição'}
+                  </div>
+
+                  {/* Stats rápidos */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ['Falta', formatCurrency(Math.max(0, target - current))],
+                      ['Semanas', current >= target ? 'Meta atingida!' : weeks ? String(weeks) : '—'],
+                      ['ETA', current >= target ? '🎉' : eta ? formatDate(eta) : '—'],
+                      ['Anual', formatCurrency(weekly * 52)],
+                    ].map(([label, val]) => (
+                      <div key={label} className="bg-slate-50 rounded-lg p-2.5">
+                        <p className="text-[9.5px] font-bold text-ink-3 uppercase tracking-wide mb-0.5">{label}</p>
+                        <p className="text-[13px] font-bold text-ink">{val}</p>
                       </div>
-                    </div>
+                    ))}
                   </div>
 
                   {saving === goal.id && (

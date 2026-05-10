@@ -9,6 +9,7 @@ import { TransactionForm } from '@/components/forms/TransactionForm'
 import { ImportCSVModal } from '@/components/forms/ImportCSVModal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { Plus, Upload, Search, X } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 import { useIsMobile } from '@/lib/hooks'
 
 export default function LancamentosPage() {
@@ -17,6 +18,8 @@ export default function LancamentosPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [total, setTotal] = useState(0)
+  const [totalReceita, setTotalReceita] = useState(0)
+  const [totalDespesa, setTotalDespesa] = useState(0)
   const [pages, setPages] = useState(1)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -44,6 +47,8 @@ export default function LancamentosPage() {
     const data = await res.json()
     setTransactions(data.data)
     setTotal(data.total)
+    setTotalReceita(data.totalReceita ?? 0)
+    setTotalDespesa(data.totalDespesa ?? 0)
     setPages(data.pages)
     setPage(p)
     setLoading(false)
@@ -114,9 +119,16 @@ export default function LancamentosPage() {
           </button>
         </div>
 
-        {/* Contador */}
+        {/* Contador com totais */}
         {!loading && (
-          <p className="text-xs text-ink-3">{total} lançamento{total !== 1 ? 's' : ''}</p>
+          <div className="flex items-center gap-3 text-xs flex-wrap">
+            <span className="text-ink-3">{total} lançamento{total !== 1 ? 's' : ''}</span>
+            <span className="text-[#16A34A] font-semibold">+{formatCurrency(totalReceita)}</span>
+            <span className="text-[#E11D48] font-semibold">−{formatCurrency(totalDespesa)}</span>
+            <span className={`font-bold ${totalReceita - totalDespesa >= 0 ? 'text-teal' : 'text-[#E11D48]'}`}>
+              = {formatCurrency(totalReceita - totalDespesa)}
+            </span>
+          </div>
         )}
 
         {/* Lista */}

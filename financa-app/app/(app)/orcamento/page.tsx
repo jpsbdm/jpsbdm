@@ -48,7 +48,7 @@ export default function OrcamentoPage() {
           budgeted: budget?.amount ?? 0,
           actual: actualMap.get(cat) ?? 0,
         }
-      }).filter((i) => i.budgeted > 0 || i.actual > 0)
+      })
 
       setItems(result)
     }).finally(() => setLoading(false))

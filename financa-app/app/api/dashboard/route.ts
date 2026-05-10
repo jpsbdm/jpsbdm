@@ -62,16 +62,17 @@ export async function GET(request: NextRequest) {
     .filter((t) => t.empresa === 'Personal Chef' && t.type === 'Despesa')
     .reduce((s, t) => s + t.amount, 0)
 
-  // Análise 50/30/20 (categorias necessidades/desejos hardcodadas como exemplo)
-  const necessidadesCats = ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Utilidades']
-  const poupancaCats = ['Finanças', 'Poupança']
+  // Análise 50/30/20 mapeada às categorias reais
+  // Necessidades = Despesas Obrigatórias + Dívida
+  // Desejos      = Despesas não Obrigatórias
+  // Poupança     = receita - necessidades - desejos (sobra real)
   const necessidades = transactions
-    .filter((t) => t.type === 'Despesa' && necessidadesCats.includes(t.category))
+    .filter((t) => t.type === 'Despesa' && (t.category === 'Despesas Obrigatórias' || t.category === 'Dívida'))
     .reduce((s, t) => s + t.amount, 0)
-  const poupanca = transactions
-    .filter((t) => t.type === 'Despesa' && poupancaCats.includes(t.category))
+  const desejos = transactions
+    .filter((t) => t.type === 'Despesa' && t.category === 'Despesas não Obrigatórias')
     .reduce((s, t) => s + t.amount, 0)
-  const desejos = despesas - necessidades - poupanca
+  const poupanca = Math.max(0, receitas - necessidades - desejos)
 
   const recentTransactions = await prisma.transaction.findMany({
     where: { date: { gte: start, lte: end } },
