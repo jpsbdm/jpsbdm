@@ -175,4 +175,35 @@ export interface AnalyticsData {
   categoryAverages: Record<string, number>
   subscriptions: SubscriptionItem[]
   emergencyFund: EmergencyFundData
+  budgetAlerts: BudgetAlertItem[]
+  healthScore: HealthScore
+  weeklyReview: WeeklyReview
+}
+
+export interface BudgetAlertItem {
+  category: string
+  budgeted: number
+  actual: number
+  pct: number
+}
+
+export interface HealthScore {
+  total: number
+  savingsRate: number
+  budgetAdherence: number
+  emergencyMonths: number
+  breakdown: {
+    savings: number
+    budget: number
+    emergency: number
+    debt: number
+  }
+}
+
+export interface WeeklyReview {
+  receitas: number
+  despesas: number
+  transactions: number
+  topCategories: Array<{ category: string; amount: number }>
+  balance: number
 }
