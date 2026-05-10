@@ -1,0 +1,69 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  description  String
+  bank         String
+  type         String   // 'Despesa' | 'Receita' | 'Transferência'
+  category     String
+  subcategory  String   @default("")
+  empresa      String   // 'Pessoal' | 'Marmitas' | 'Personal Chef'
+  amount       Float    // sempre positivo; type define se é saída ou entrada
+  notes        String   @default("")
+  exported     Boolean  @default(false)
+  importedFrom String?  // 'CBA' | 'ANZ' | 'Qantas' | 'Manual'
+  externalRef  String?  // hash único do banco para evitar duplicatas
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Budget {
+  id       Int    @id @default(autoincrement())
+  month    Int    // 1-12
+  year     Int
+  category String
+  amount   Float
+
+  @@unique([month, year, category])
+}
+
+model SavingsGoal {
+  id            Int      @id @default(autoincrement())
+  name          String
+  currentAmount Float    @default(0)
+  targetAmount  Float
+  weeklyContrib Float    @default(0)
+  startDate     DateTime
+  updatedAt     DateTime @updatedAt
+}
+
+model AllowedDevice {
+  id          Int      @id @default(autoincrement())
+  fingerprint String   @unique
+  name        String   // 'iPhone', 'MacBook', etc.
+  lastSeen    DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model AppSession {
+  id        String   @id
+  token     String   @unique
+  deviceId  Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id         Int    @id @default(1)
+  banks      String @default("[]")       // JSON array de strings
+  categories String @default("{}")       // JSON object categoria -> subcategorias[]
+}

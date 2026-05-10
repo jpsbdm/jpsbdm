@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/jpsbdm/financa-app:latest
+    container_name: financa-app
+    restart: unless-stopped
+    volumes:
+      - ./data:/data          # SQLite persiste aqui
+    env_file:
+      - .env.local
+    ports:
+      - '3099:3000' # Acessível na rede local; Cloudflare Tunnel protege o acesso externo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: financa-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      app:
+        condition: service_healthy
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: financa-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json:ro  # credenciais do ghcr.io
+    environment:
+      - WATCHTOWER_CLEANUP=true        # remove imagens antigas automaticamente
+      - WATCHTOWER_ROLLING_RESTART=true
+    command: --interval 300 financa-app  # checa por nova imagem a cada 5 minutos
