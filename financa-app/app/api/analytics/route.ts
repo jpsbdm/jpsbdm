@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   currDespesas.forEach((t) => currMap.set(t.category, (currMap.get(t.category) ?? 0) + t.amount))
   prevTxs.forEach((t) => prevMap.set(t.category, (prevMap.get(t.category) ?? 0) + t.amount))
 
-  const allCats = new Set([...currMap.keys(), ...prevMap.keys()])
+  const allCats = new Set([...Array.from(currMap.keys()), ...Array.from(prevMap.keys())])
   const comparison = Array.from(allCats)
     .map((cat) => {
       const curr = currMap.get(cat) ?? 0
