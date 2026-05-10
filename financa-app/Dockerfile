@@ -9,6 +9,8 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 RUN npx prisma generate
+ARG APP_VERSION=dev
+ENV NEXT_PUBLIC_APP_VERSION=$APP_VERSION
 RUN npm run build
 
 # ── Stage 2: Runtime ─────────────────────────────────
