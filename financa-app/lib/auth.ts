@@ -10,7 +10,7 @@ export const sessionOptions: SessionOptions = {
   password: process.env.SESSION_SECRET ?? 'fallback-secret-change-me-in-production-32c',
   cookieName: 'financa_session',
   cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE === 'true',
     httpOnly: true,
     sameSite: 'strict',
     maxAge: 30 * 24 * 60 * 60, // 30 dias
