@@ -3,26 +3,20 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
-  ListOrdered,
-  PiggyBank,
-  Building2,
-  Upload,
-  Settings,
-  LogOut,
-  TrendingUp,
-  DollarSign,
+  LayoutDashboard, ListOrdered, PiggyBank, Building2,
+  Upload, Settings, LogOut, TrendingUp, DollarSign, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/lancamentos', label: 'Lançamentos', icon: ListOrdered },
-  { href: '/orcamento', label: 'Orçamento', icon: TrendingUp },
-  { href: '/poupanca', label: 'Poupança', icon: PiggyBank },
-  { href: '/empresas', label: 'P&L Empresas', icon: Building2 },
-  { href: '/exportar', label: 'Exportar Grão', icon: Upload },
-  { href: '/config', label: 'Configurações', icon: Settings },
+  { href: '/dashboard',   label: 'Dashboard',     icon: LayoutDashboard },
+  { href: '/contas',      label: 'Contas',         icon: Wallet },
+  { href: '/lancamentos', label: 'Lançamentos',    icon: ListOrdered },
+  { href: '/orcamento',   label: 'Orçamento',      icon: TrendingUp },
+  { href: '/poupanca',    label: 'Poupança',       icon: PiggyBank },
+  { href: '/empresas',    label: 'P&L Empresas',   icon: Building2 },
+  { href: '/exportar',    label: 'Exportar Grão',  icon: Upload },
+  { href: '/config',      label: 'Configurações',  icon: Settings },
 ]
 
 async function handleLogout() {

@@ -14,10 +14,18 @@ const schema = z.object({
   amount: z.string().min(1, 'Valor obrigatório').refine((v) => parseFloat(v) > 0, 'Valor deve ser positivo'),
   description: z.string().min(1, 'Descrição obrigatória'),
   bank: z.string().min(1, 'Conta obrigatória'),
+  toBank: z.string().optional(),
   category: z.string().min(1, 'Categoria obrigatória'),
   subcategory: z.string().default(''),
   empresa: z.enum(['Pessoal', 'Marmitas', 'Personal Chef']),
   notes: z.string().default(''),
+}).superRefine((data, ctx) => {
+  if (data.type === 'Transferência' && (!data.toBank || data.toBank.trim() === '')) {
+    ctx.addIssue({ code: 'custom', path: ['toBank'], message: 'Conta destino obrigatória' })
+  }
+  if (data.type === 'Transferência' && data.toBank === data.bank) {
+    ctx.addIssue({ code: 'custom', path: ['toBank'], message: 'Origem e destino devem ser diferentes' })
+  }
 })
 
 type FormData = z.infer<typeof schema>
@@ -29,13 +37,13 @@ interface Props {
 }
 
 const TYPE_OPTIONS: { value: TransactionType; label: string; color: string }[] = [
-  { value: 'Despesa', label: 'Despesa', color: 'bg-red-50 border-[#E11D48] text-[#E11D48]' },
-  { value: 'Receita', label: 'Receita', color: 'bg-teal-light border-teal text-teal' },
-  { value: 'Transferência', label: 'Transferência', color: 'bg-slate-50 border-slate-400 text-ink-2' },
+  { value: 'Despesa',       label: 'Despesa',       color: 'bg-red-50 border-[#E11D48] text-[#E11D48]' },
+  { value: 'Receita',       label: 'Receita',        color: 'bg-teal-light border-teal text-teal' },
+  { value: 'Transferência', label: 'Transferência',  color: 'bg-slate-50 border-slate-400 text-ink-2' },
 ]
 
 export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
-  const [banks, setBanks] = useState<string[]>([])
+  const [accounts, setAccounts] = useState<string[]>([])
   const [categories, setCategories] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(false)
   const [descSuggestions, setDescSuggestions] = useState<string[]>([])
@@ -50,6 +58,7 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
       amount: initial ? String(initial.amount) : '',
       description: initial?.description ?? '',
       bank: initial?.bank ?? '',
+      toBank: initial?.toBank ?? '',
       category: initial?.category ?? '',
       subcategory: initial?.subcategory ?? '',
       empresa: (initial?.empresa ?? 'Pessoal') as EmpresaType,
@@ -59,14 +68,19 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
 
   const selectedType = watch('type')
   const selectedCategory = useWatch({ control, name: 'category' })
+  const isTransfer = selectedType === 'Transferência'
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((d) => {
-        setBanks(d.banks ?? [])
-        setCategories(d.categories ?? {})
-      })
+    Promise.all([
+      fetch('/api/accounts').then((r) => r.json()),
+      fetch('/api/settings').then((r) => r.json()),
+    ]).then(([accRes, settRes]) => {
+      const accNames: string[] = (accRes.accounts ?? []).map((a: { name: string }) => a.name)
+      // Fallback para Settings.banks se não houver contas cadastradas
+      const banks: string[] = settRes.banks ?? []
+      setAccounts(accNames.length > 0 ? accNames : banks)
+      setCategories(settRes.categories ?? {})
+    })
   }, [])
 
   function handleDescChange(val: string) {
@@ -82,7 +96,11 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
   async function onSubmit(data: FormData) {
     setLoading(true)
     try {
-      const payload = { ...data, amount: parseFloat(data.amount) }
+      const payload = {
+        ...data,
+        amount: parseFloat(data.amount),
+        toBank: data.type === 'Transferência' ? (data.toBank ?? null) : null,
+      }
       const url = initial ? `/api/transactions/${initial.id}` : '/api/transactions'
       const method = initial ? 'PATCH' : 'POST'
       const res = await fetch(url, {
@@ -103,7 +121,7 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-      {/* Tipo — botões de toggle */}
+      {/* Tipo */}
       <div>
         <label className="block text-xs font-medium text-ink-2 mb-1.5">Tipo</label>
         <div className="grid grid-cols-3 gap-2">
@@ -121,7 +139,7 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         </div>
       </div>
 
-      {/* Data + Valor na mesma linha */}
+      {/* Data + Valor */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-ink-2 mb-1">Data</label>
@@ -131,24 +149,18 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         <div>
           <label className="block text-xs font-medium text-ink-2 mb-1">Valor (AUD$)</label>
           <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            inputMode="decimal"
-            placeholder="0.00"
-            {...register('amount')}
-            className="input-field w-full"
+            type="number" step="0.01" min="0.01" inputMode="decimal" placeholder="0.00"
+            {...register('amount')} className="input-field w-full"
           />
           {errors.amount && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.amount.message}</p>}
         </div>
       </div>
 
-      {/* Descrição com autocomplete */}
+      {/* Descrição */}
       <div className="relative">
         <label className="block text-xs font-medium text-ink-2 mb-1">Descrição</label>
         <input
-          type="text"
-          placeholder="Ex: Woolworths Supermarket"
+          type="text" placeholder="Ex: Woolworths Supermarket"
           {...register('description')}
           onChange={(e) => handleDescChange(e.target.value)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -157,11 +169,8 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         {showSuggestions && descSuggestions.length > 0 && (
           <ul className="absolute z-10 left-0 right-0 bg-white border border-slate-border rounded-md shadow-card mt-1 max-h-32 overflow-auto">
             {descSuggestions.map((s) => (
-              <li
-                key={s}
-                className="px-3 py-2 text-[13px] hover:bg-slate-50 cursor-pointer"
-                onMouseDown={() => { setValue('description', s); setShowSuggestions(false) }}
-              >
+              <li key={s} className="px-3 py-2 text-[13px] hover:bg-slate-50 cursor-pointer"
+                onMouseDown={() => { setValue('description', s); setShowSuggestions(false) }}>
                 {s}
               </li>
             ))}
@@ -170,15 +179,29 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         {errors.description && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.description.message}</p>}
       </div>
 
-      {/* Conta (Banco) */}
+      {/* Conta — origem (ou única para despesa/receita) */}
       <div>
-        <label className="block text-xs font-medium text-ink-2 mb-1">Conta / Cartão</label>
+        <label className="block text-xs font-medium text-ink-2 mb-1">
+          {isTransfer ? 'Conta Origem' : 'Conta / Cartão'}
+        </label>
         <select {...register('bank')} className="input-field w-full">
           <option value="">Selecione a conta</option>
-          {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+          {accounts.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
         {errors.bank && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.bank.message}</p>}
       </div>
+
+      {/* Conta destino — apenas para transferência */}
+      {isTransfer && (
+        <div>
+          <label className="block text-xs font-medium text-ink-2 mb-1">Conta Destino</label>
+          <select {...register('toBank')} className="input-field w-full border-teal">
+            <option value="">Selecione o destino</option>
+            {accounts.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+          {errors.toBank && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.toBank.message}</p>}
+        </div>
+      )}
 
       {/* Categoria */}
       <div>
@@ -190,7 +213,6 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
         {errors.category && <p className="text-[11px] text-[#E11D48] mt-0.5">{errors.category.message}</p>}
       </div>
 
-      {/* Subcategoria — aparece apenas se existir */}
       {subcategories.length > 0 && (
         <div>
           <label className="block text-xs font-medium text-ink-2 mb-1">Subcategoria</label>
@@ -214,19 +236,11 @@ export function TransactionForm({ initial, onSuccess, onCancel }: Props) {
       {/* Notas */}
       <div>
         <label className="block text-xs font-medium text-ink-2 mb-1">Notas (opcional)</label>
-        <textarea
-          {...register('notes')}
-          rows={2}
-          className="input-field w-full resize-none"
-          placeholder="Observações..."
-        />
+        <textarea {...register('notes')} rows={2} className="input-field w-full resize-none" placeholder="Observações..." />
       </div>
 
-      {/* Botões */}
       <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pb-2">
-        <button type="button" onClick={onCancel} className="btn-secondary flex-1">
-          Cancelar
-        </button>
+        <button type="button" onClick={onCancel} className="btn-secondary flex-1">Cancelar</button>
         <button type="submit" disabled={loading} className="btn-primary flex-1">
           {loading ? 'Salvando...' : initial ? 'Salvar' : 'Adicionar'}
         </button>

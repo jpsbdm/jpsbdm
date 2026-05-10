@@ -80,25 +80,22 @@ export async function GET(request: NextRequest) {
     take: 6,
   })
 
-  // Saldos das contas (saldo inicial + movimentações desde a data inicial)
-  const settings = await prisma.settings.findUnique({ where: { id: 1 } })
-  const initialBalances: Record<string, { amount: number; date: string }> = settings
-    ? JSON.parse(settings.initialBalances ?? '{}')
-    : {}
-
+  // Saldos via Account model
+  const accounts = await prisma.account.findMany({ where: { isActive: true } })
   const accountBalances = await Promise.all(
-    Object.entries(initialBalances).map(async ([bank, { amount: initialAmount, date: initialDate }]) => {
-      const txsSince = await prisma.transaction.findMany({
-        where: { bank, date: { gte: new Date(initialDate) } },
-      })
-      const net = txsSince.reduce((s, t) => {
-        if (t.type === 'Receita') return s + t.amount
-        if (t.type === 'Despesa') return s - t.amount
-        return s
-      }, 0)
-      return { bank, initialAmount, initialDate, currentBalance: initialAmount + net }
+    accounts.map(async (a) => {
+      const [rxs, dxs, txOut, txIn] = await Promise.all([
+        prisma.transaction.aggregate({ where: { bank: a.name, type: 'Receita', date: { gte: a.initialDate } }, _sum: { amount: true } }),
+        prisma.transaction.aggregate({ where: { bank: a.name, type: 'Despesa', date: { gte: a.initialDate } }, _sum: { amount: true } }),
+        prisma.transaction.aggregate({ where: { bank: a.name, type: 'Transferência', date: { gte: a.initialDate } }, _sum: { amount: true } }),
+        prisma.transaction.aggregate({ where: { toBank: a.name, type: 'Transferência', date: { gte: a.initialDate } }, _sum: { amount: true } }),
+      ])
+      const currentBalance = a.initialBalance + (rxs._sum.amount ?? 0) - (dxs._sum.amount ?? 0) - (txOut._sum.amount ?? 0) + (txIn._sum.amount ?? 0)
+      return { bank: a.name, initialAmount: a.initialBalance, initialDate: a.initialDate.toISOString(), currentBalance }
     })
   )
+
+  const netWorth = accountBalances.reduce((s, a) => s + a.currentBalance, 0)
 
   return NextResponse.json({
     kpis: { receitas, despesas, saldo: receitas - despesas, pendentesGrao },
@@ -111,5 +108,6 @@ export async function GET(request: NextRequest) {
     recentTransactions,
     analysis5030: { necessidades, desejos: Math.max(0, desejos), poupanca, totalReceita: receitas },
     accountBalances,
+    netWorth,
   })
 }

@@ -2,15 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ListOrdered, Upload, Menu, PiggyBank } from 'lucide-react'
+import { LayoutDashboard, ListOrdered, Wallet, PiggyBank, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard',   label: 'Dashboard',  icon: LayoutDashboard },
+  { href: '/contas',      label: 'Contas',     icon: Wallet },
   { href: '/lancamentos', label: 'Lançamentos', icon: ListOrdered },
-  { href: '/poupanca', label: 'Poupança', icon: PiggyBank },
-  { href: '/exportar', label: 'Grão', icon: Upload },
-  { href: '/config', label: 'Menu', icon: Menu },
+  { href: '/poupanca',    label: 'Poupança',   icon: PiggyBank },
+  { href: '/config',      label: 'Menu',       icon: Menu },
 ]
 
 export function MobileBottomNav() {

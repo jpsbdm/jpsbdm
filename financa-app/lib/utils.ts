@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { AccountType, DebtPayoffResult } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -78,6 +79,123 @@ export function hashRefSync(...parts: string[]): string {
     hash = hash & hash
   }
   return Math.abs(hash).toString(16).padStart(8, '0')
+}
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  corrente:    'Conta Corrente',
+  poupanca:    'Poupança',
+  credito:     'Cartão de Crédito',
+  emprestimo:  'Empréstimo',
+  dinheiro:    'Dinheiro',
+  investimento:'Investimento',
+}
+
+export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
+  corrente:    '#3B82F6',
+  poupanca:    '#0D9488',
+  credito:     '#EA580C',
+  emprestimo:  '#E11D48',
+  dinheiro:    '#16A34A',
+  investimento:'#7C3AED',
+}
+
+export const ACCOUNT_PALETTE = [
+  '#0D9488', '#3B82F6', '#7C3AED', '#EA580C',
+  '#E11D48', '#16A34A', '#D97706', '#64748B',
+]
+
+export function isLiability(type: AccountType): boolean {
+  return type === 'credito' || type === 'emprestimo'
+}
+
+export function inferAccountType(name: string): AccountType {
+  const n = name.toLowerCase()
+  if (n.includes('poupan')) return 'poupanca'
+  if (n.includes('cartão') || n.includes('cartao') || n.includes('pay') ||
+      n.includes('money') || n.includes('latitude') || n.includes('credit') ||
+      n.includes('qantas')) return 'credito'
+  if (n.includes('emprést') || n.includes('emprest') || n.includes('loan')) return 'emprestimo'
+  if (n.includes('dinheiro') || n.includes('cash')) return 'dinheiro'
+  if (n.includes('invest') || n.includes('super')) return 'investimento'
+  return 'corrente'
+}
+
+export interface DebtInput {
+  id: number
+  name: string
+  balance: number      // valor devido (positivo)
+  interestRate: number // % ao ano
+  minimumPayment: number
+}
+
+export function simulateDebtPayoff(
+  debts: DebtInput[],
+  extraMonthly: number,
+  method: 'avalanche' | 'bola-de-neve'
+): DebtPayoffResult {
+  const sorted = [...debts].sort((a, b) =>
+    method === 'avalanche'
+      ? b.interestRate - a.interestRate
+      : a.balance - b.balance
+  )
+
+  const state = sorted.map((d) => ({
+    ...d,
+    remaining: d.balance,
+    monthlyRate: d.interestRate / 100 / 12,
+    monthsPaidOff: 0,
+    totalInterest: 0,
+    done: false,
+  }))
+
+  let month = 0
+  const MAX = 600
+
+  while (state.some((d) => !d.done) && month < MAX) {
+    month++
+    let extra = extraMonthly
+
+    // Libera mínimos de quem já pagou
+    for (const d of state) {
+      if (d.done) extra += d.minimumPayment
+    }
+
+    for (let i = 0; i < state.length; i++) {
+      const d = state[i]
+      if (d.done) continue
+
+      const interest = d.remaining * d.monthlyRate
+      d.remaining += interest
+      d.totalInterest += interest
+
+      const isTarget = i === state.findIndex((x) => !x.done)
+      const payment = Math.min(
+        (isTarget ? d.minimumPayment + extra : d.minimumPayment),
+        d.remaining
+      )
+      if (isTarget) extra = Math.max(0, extra - Math.max(0, payment - d.minimumPayment))
+
+      d.remaining -= payment
+      if (d.remaining <= 0.01) {
+        d.done = true
+        d.monthsPaidOff = month
+        d.remaining = 0
+      }
+    }
+  }
+
+  return {
+    method,
+    order: state.map((d) => ({
+      name: d.name,
+      balance: d.balance,
+      interestRate: d.interestRate,
+      monthsPaidOff: d.monthsPaidOff,
+      totalInterest: d.totalInterest,
+    })),
+    totalMonths: month,
+    totalInterest: state.reduce((s, d) => s + d.totalInterest, 0),
+  }
 }
 
 export function calcETA(
