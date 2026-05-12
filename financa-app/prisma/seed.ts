@@ -34,6 +34,7 @@ const defaultCategories: Record<string, string[]> = {
     'Colaboradores', 'Ferramentas', 'Infraestrutura', 'Insumos e Outros', 'Marketing',
     'Meios de Pagamento', 'Prestadores de Serviço - Empresa', 'Taxas e Impostos - Empresa',
   ],
+  'Movimentações Internas': ['Transferência entre Contas', 'Pagamento de Cartão', 'Pagamento de Empréstimo'],
   'Renda': ['Outras Fontes de Renda', 'Renda Cliente', 'Renda Cônjuge / Negócios'],
 }
 
@@ -69,6 +70,28 @@ async function main() {
     await prisma.settings.update({
       where: { id: 1 },
       data: { banks: JSON.stringify(mergedBanks) },
+    })
+  }
+
+  // Garante que todas as categorias padrão existem (merge sem sobrescrever as do usuário)
+  const currentCats: Record<string, string[]> = JSON.parse(settings.categories)
+  let catsChanged = false
+  for (const [cat, subs] of Object.entries(defaultCategories)) {
+    if (!currentCats[cat]) {
+      currentCats[cat] = subs
+      catsChanged = true
+    } else {
+      const merged = Array.from(new Set([...currentCats[cat], ...subs]))
+      if (merged.length !== currentCats[cat].length) {
+        currentCats[cat] = merged
+        catsChanged = true
+      }
+    }
+  }
+  if (catsChanged) {
+    await prisma.settings.update({
+      where: { id: 1 },
+      data: { categories: JSON.stringify(currentCats) },
     })
   }
 

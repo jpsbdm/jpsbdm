@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ListOrdered, PiggyBank, Building2,
-  Upload, Settings, LogOut, TrendingUp, DollarSign, Wallet, FileText,
+  Send, Settings, LogOut, TrendingUp, DollarSign, Wallet, FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -16,7 +16,7 @@ const navItems = [
   { href: '/poupanca',    label: 'Poupança',       icon: PiggyBank },
   { href: '/empresas',    label: 'P&L Empresas',   icon: Building2 },
   { href: '/relatorio',   label: 'Relatório',      icon: FileText },
-  { href: '/exportar',    label: 'Exportar Grão',  icon: Upload },
+  { href: '/grao',        label: 'Grao',           icon: Send },
   { href: '/config',      label: 'Configurações',  icon: Settings },
 ]
 

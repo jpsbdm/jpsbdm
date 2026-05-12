@@ -9,22 +9,24 @@ datasource db {
 }
 
 model Transaction {
-  id           Int      @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   date         DateTime
   description  String
   bank         String
-  toBank       String?  // destino em transferências
-  type         String   // 'Despesa' | 'Receita' | 'Transferência'
+  toBank       String?
+  type         String      // 'Despesa' | 'Receita' | 'Transferência'
   category     String
-  subcategory  String   @default("")
-  empresa      String   // 'Pessoal' | 'Marmitas' | 'Personal Chef'
+  subcategory  String      @default("")
+  empresa      String      // 'Pessoal' | 'Marmitas' | 'Personal Chef'
   amount       Float
-  notes        String   @default("")
-  exported     Boolean  @default(false)
+  notes        String      @default("")
+  exported     Boolean     @default(false)
   importedFrom String?
   externalRef  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  graoExportId Int?
+  graoExport   GraoExport? @relation(fields: [graoExportId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model Account {
@@ -34,10 +36,10 @@ model Account {
   color          String   @default("#0D9488")
   initialBalance Float    @default(0)
   initialDate    DateTime @default(now())
-  creditLimit    Float?   // para cartões de crédito
-  interestRate   Float?   // % ao ano (para crédito/empréstimo)
-  minimumPayment Float?   // parcela mínima mensal
-  dueDay         Int?     // dia do vencimento (1-31)
+  creditLimit    Float?
+  interestRate   Float?
+  minimumPayment Float?
+  dueDay         Int?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -56,11 +58,20 @@ model Budget {
 model SavingsGoal {
   id            Int      @id @default(autoincrement())
   name          String
+  accountName   String?  // conta de poupança vinculada
   currentAmount Float    @default(0)
   targetAmount  Float
   weeklyContrib Float    @default(0)
   startDate     DateTime
   updatedAt     DateTime @updatedAt
+}
+
+model GraoExport {
+  id           Int           @id @default(autoincrement())
+  createdAt    DateTime      @default(now())
+  totalAmount  Float
+  summary      String        // JSON: [{category, subcategory, amount, count}]
+  transactions Transaction[]
 }
 
 model AllowedDevice {
