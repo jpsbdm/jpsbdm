@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
+  accountName: z.string().optional().nullable(),
   currentAmount: z.number().min(0).optional(),
   targetAmount: z.number().min(0).optional(),
   weeklyContrib: z.number().min(0).optional(),

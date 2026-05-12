@@ -83,5 +83,18 @@ export async function POST(request: NextRequest) {
     data: { ...rest, date: new Date(date) },
   })
 
+  // Auto-update meta de poupança vinculada à conta destino
+  if (rest.type === 'Transferência' && rest.toBank) {
+    const goal = await prisma.savingsGoal.findFirst({
+      where: { accountName: rest.toBank },
+    })
+    if (goal) {
+      await prisma.savingsGoal.update({
+        where: { id: goal.id },
+        data: { currentAmount: goal.currentAmount + rest.amount },
+      })
+    }
+  }
+
   return NextResponse.json({ transaction }, { status: 201 })
 }

@@ -18,6 +18,7 @@ export interface Transaction {
   exported: boolean
   importedFrom?: string | null
   externalRef?: string | null
+  graoExportId?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -50,11 +51,35 @@ export interface Budget {
 export interface SavingsGoal {
   id: number
   name: string
+  accountName?: string | null
   currentAmount: number
   targetAmount: number
   weeklyContrib: number
   startDate: string
   updatedAt: string
+}
+
+export interface GraoExportSummaryItem {
+  category: string
+  subcategory: string
+  amount: number
+  count: number
+}
+
+export interface GraoExport {
+  id: number
+  createdAt: string
+  totalAmount: number
+  summary: GraoExportSummaryItem[]
+  transactions?: Transaction[]
+}
+
+export interface GraoPendingItem {
+  category: string
+  subcategory: string
+  amount: number
+  count: number
+  transactionIds: number[]
 }
 
 export interface AllowedDevice {

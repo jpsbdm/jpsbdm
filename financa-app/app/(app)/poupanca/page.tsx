@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { SavingsGoal } from '@/types'
+import { SavingsGoal, Account } from '@/types'
 import { Topbar } from '@/components/layout/Topbar'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { formatCurrency, formatDate, calcETA } from '@/lib/utils'
-import { Plus, Trash2, X, PlusCircle } from 'lucide-react'
+import { Plus, Trash2, X, PlusCircle, Link2 } from 'lucide-react'
 
 const CARD_COLORS = [
   { accent: '#0D9488', light: '#CCFBF1', label: 'text-teal' },
@@ -16,6 +16,7 @@ const CARD_COLORS = [
 
 interface NewGoalForm {
   name: string
+  accountName: string
   targetAmount: string
   currentAmount: string
   weeklyContrib: string
@@ -23,26 +24,30 @@ interface NewGoalForm {
 
 export default function PoupancaPage() {
   const [goals, setGoals] = useState<SavingsGoal[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Record<number, Partial<SavingsGoal>>>({})
   const [saving, setSaving] = useState<number | null>(null)
   const [showNewForm, setShowNewForm] = useState(false)
-  const [newForm, setNewForm] = useState<NewGoalForm>({ name: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
+  const [newForm, setNewForm] = useState<NewGoalForm>({ name: '', accountName: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
   const [creating, setCreating] = useState(false)
   const [aporteId, setAporteId] = useState<number | null>(null)
   const [aporteValue, setAporteValue] = useState('')
   const [aporteLoading, setAporteLoading] = useState(false)
 
   useEffect(() => {
-    fetch('/api/savings')
-      .then((r) => r.json())
-      .then((d) => setGoals(d.goals ?? []))
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/savings').then((r) => r.json()),
+      fetch('/api/accounts').then((r) => r.json()),
+    ]).then(([savRes, accRes]) => {
+      setGoals(savRes.goals ?? [])
+      setAccounts((accRes.accounts ?? []).filter((a: Account) => a.type === 'poupanca'))
+    }).finally(() => setLoading(false))
   }, [])
 
   async function saveGoal(id: number) {
     const updates = editing[id]
-    if (!updates) return
+    if (!updates || Object.keys(updates).length === 0) return
     setSaving(id)
     const res = await fetch(`/api/savings/${id}`, {
       method: 'PUT',
@@ -55,7 +60,7 @@ export default function PoupancaPage() {
     setSaving(null)
   }
 
-  function updateField(id: number, field: keyof SavingsGoal, value: string | number) {
+  function updateField(id: number, field: keyof SavingsGoal, value: string | number | null) {
     setEditing((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
   }
 
@@ -90,6 +95,7 @@ export default function PoupancaPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: newForm.name.trim(),
+        accountName: newForm.accountName || null,
         targetAmount: parseFloat(newForm.targetAmount) || 0,
         currentAmount: parseFloat(newForm.currentAmount) || 0,
         weeklyContrib: parseFloat(newForm.weeklyContrib) || 0,
@@ -98,13 +104,14 @@ export default function PoupancaPage() {
     const data = await res.json()
     if (res.ok) {
       setGoals((prev) => [...prev, data.goal])
-      setNewForm({ name: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
+      setNewForm({ name: '', accountName: '', targetAmount: '', currentAmount: '0', weeklyContrib: '0' })
       setShowNewForm(false)
     }
     setCreating(false)
   }
 
   const totalWeekly = goals.reduce((s, g) => s + g.weeklyContrib, 0)
+  const savingsAccounts = accounts
 
   return (
     <div className="flex-1 flex flex-col">
@@ -139,6 +146,7 @@ export default function PoupancaPage() {
               const weekly = Number(edits.weeklyContrib ?? goal.weeklyContrib)
               const { weeks, eta } = calcETA(current, target, weekly)
               const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0
+              const linkedAccount = edits.accountName !== undefined ? edits.accountName : goal.accountName
 
               return (
                 <div key={goal.id} className="bg-white rounded-xl shadow-card overflow-hidden">
@@ -165,6 +173,29 @@ export default function PoupancaPage() {
                         <span className="font-semibold" style={{ color: color.accent }}>{pct.toFixed(1)}%</span>
                       </div>
                       <ProgressBar value={current} max={target || 1} color={color.accent} height="thick" />
+                    </div>
+
+                    {/* Conta vinculada */}
+                    <div>
+                      <label className="text-[11px] text-ink-3 mb-0.5 flex items-center gap-1">
+                        <Link2 className="w-3 h-3" /> Conta de poupança vinculada
+                      </label>
+                      <select
+                        value={linkedAccount ?? ''}
+                        onChange={(e) => updateField(goal.id, 'accountName', e.target.value || null)}
+                        onBlur={() => saveGoal(goal.id)}
+                        className="input-field w-full text-[12px]"
+                      >
+                        <option value="">Não vinculada (aporte manual)</option>
+                        {savingsAccounts.map((a) => (
+                          <option key={a.id} value={a.name}>{a.name}</option>
+                        ))}
+                      </select>
+                      {linkedAccount && (
+                        <p className="text-[10px] text-teal mt-0.5">
+                          Transferências para esta conta atualizam o saldo automaticamente
+                        </p>
+                      )}
                     </div>
 
                     {/* Campos editáveis */}
@@ -222,7 +253,7 @@ export default function PoupancaPage() {
                       ))}
                     </div>
 
-                    {/* Registrar Aporte */}
+                    {/* Registrar Aporte manual */}
                     {aporteId === goal.id ? (
                       <div className="flex items-center gap-2 pt-1">
                         <input
@@ -253,7 +284,7 @@ export default function PoupancaPage() {
                         className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-slate-border text-[12px] text-ink-3 hover:border-teal hover:text-teal transition-colors"
                       >
                         <PlusCircle className="w-3.5 h-3.5" />
-                        Registrar Aporte
+                        Registrar Aporte Manual
                       </button>
                     )}
 
@@ -285,6 +316,21 @@ export default function PoupancaPage() {
                       className="input-field w-full"
                       autoFocus
                     />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-ink-3 mb-0.5 flex items-center gap-1">
+                      <Link2 className="w-3 h-3" /> Conta de poupança (opcional)
+                    </label>
+                    <select
+                      value={newForm.accountName}
+                      onChange={(e) => setNewForm((p) => ({ ...p, accountName: e.target.value }))}
+                      className="input-field w-full"
+                    >
+                      <option value="">Não vincular conta</option>
+                      {savingsAccounts.map((a) => (
+                        <option key={a.id} value={a.name}>{a.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

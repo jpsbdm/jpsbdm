@@ -11,6 +11,7 @@ export async function GET() {
 
 const createSchema = z.object({
   name: z.string().min(1),
+  accountName: z.string().optional().nullable(),
   targetAmount: z.number().min(0),
   currentAmount: z.number().min(0).default(0),
   weeklyContrib: z.number().min(0).default(0),
