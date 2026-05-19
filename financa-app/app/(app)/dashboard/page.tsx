@@ -53,6 +53,18 @@ export default function DashboardPage() {
   const health = analytics?.healthScore
   const budgetAlerts = analytics?.budgetAlerts ?? []
 
+  // Visão do mês + previsão de fechamento
+  const today = new Date()
+  const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const daysElapsed = isCurrentMonth ? today.getDate() : daysInMonth
+  const daysRemaining = isCurrentMonth ? daysInMonth - daysElapsed : 0
+  const monthPct = Math.round((daysElapsed / daysInMonth) * 100)
+  const dailyRate = daysElapsed > 0 ? kpis.despesas / daysElapsed : 0
+  const projectedDespesas = dailyRate * daysInMonth
+  const projectedSaldo = kpis.receitas - projectedDespesas
+  const spendingPct = kpis.receitas > 0 ? Math.min(200, Math.round((kpis.despesas / kpis.receitas) * 100)) : 0
+
   return (
     <div className="flex-1 flex flex-col">
       <Topbar title="Dashboard" />
@@ -76,6 +88,77 @@ export default function DashboardPage() {
             subtext="lançamentos"
           />
         </div>
+
+        {/* Visão do mês */}
+        <div className="bg-white rounded-lg shadow-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="text-[14px] font-semibold text-ink">Visão do Mês</h2>
+              <p className="text-[11px] text-ink-3">{daysElapsed} de {daysInMonth} dias {isCurrentMonth ? 'decorridos' : '(mês fechado)'}</p>
+            </div>
+            <span className="text-[13px] font-bold text-ink-2">{monthPct}%</span>
+          </div>
+          {/* Barra de dias */}
+          <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
+            <div className="bg-ink-2 h-2 rounded-full transition-all" style={{ width: `${monthPct}%` }} />
+          </div>
+          {/* Barra de gastos vs receita */}
+          <div className="flex items-center justify-between text-[11px] text-ink-3 mb-1">
+            <span>Gastos vs Receita</span>
+            <span className={`font-semibold ${spendingPct > 100 ? 'text-[#E11D48]' : spendingPct > 80 ? 'text-[#D97706]' : 'text-[#16A34A]'}`}>
+              {spendingPct}%
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, spendingPct)}%`,
+                backgroundColor: spendingPct > 100 ? '#E11D48' : spendingPct > 80 ? '#D97706' : '#16A34A',
+              }}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-[10px] text-ink-3 uppercase tracking-wide">Gasto hoje est.</p>
+              <p className="text-[13px] font-bold text-ink">{formatCurrency(dailyRate)}<span className="text-[10px] font-normal text-ink-3">/dia</span></p>
+            </div>
+            <div className="border-x border-slate-border">
+              <p className="text-[10px] text-ink-3 uppercase tracking-wide">Dias restantes</p>
+              <p className="text-[13px] font-bold text-ink">{daysRemaining}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-ink-3 uppercase tracking-wide">Saldo atual</p>
+              <p className={`text-[13px] font-bold ${kpis.saldo >= 0 ? 'text-[#16A34A]' : 'text-[#E11D48]'}`}>{formatCurrency(kpis.saldo)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Previsão de fechamento */}
+        {isCurrentMonth && daysElapsed > 0 && (
+          <div className={`rounded-lg p-4 border ${projectedSaldo >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            <h2 className="text-[13px] font-semibold text-ink mb-2">Previsão de Fechamento do Mês</h2>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-[10px] text-ink-3 uppercase tracking-wide mb-0.5">Despesas previstas</p>
+                <p className="text-[14px] font-bold text-[#E11D48]">{formatCurrency(projectedDespesas)}</p>
+              </div>
+              <div className="border-x border-slate-border/50">
+                <p className="text-[10px] text-ink-3 uppercase tracking-wide mb-0.5">Receita esperada</p>
+                <p className="text-[14px] font-bold text-[#16A34A]">{formatCurrency(kpis.receitas)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-ink-3 uppercase tracking-wide mb-0.5">Saldo previsto</p>
+                <p className={`text-[14px] font-bold ${projectedSaldo >= 0 ? 'text-[#16A34A]' : 'text-[#E11D48]'}`}>
+                  {projectedSaldo >= 0 ? '+' : ''}{formatCurrency(projectedSaldo)}
+                </p>
+              </div>
+            </div>
+            <p className="text-[11px] text-ink-3 mt-2 text-center">
+              Baseado em {formatCurrency(dailyRate)}/dia × {daysInMonth} dias · Se mantiver o ritmo atual
+            </p>
+          </div>
+        )}
 
         {/* Gráfico de tendência */}
         <ChartCard title="Receitas vs Despesas" subtitle="Últimos 6 meses">

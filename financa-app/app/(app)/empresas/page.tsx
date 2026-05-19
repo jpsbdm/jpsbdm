@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useFilterStore } from '@/lib/store'
 import { Topbar } from '@/components/layout/Topbar'
 import { ChartCard } from '@/components/charts/ChartCard'
-import { formatCurrency, formatMonthYear } from '@/lib/utils'
-import { subMonths, startOfMonth, endOfMonth } from 'date-fns'
+import { formatCurrency } from '@/lib/utils'
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts'
 
 interface MonthlyPL {
   month: string
@@ -22,10 +24,6 @@ interface CompanyData {
   totalLucro: number
 }
 
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts'
-
 export default function EmpresasPage() {
   const { month, year } = useFilterStore()
   const [marmitas, setMarmitas] = useState<CompanyData | null>(null)
@@ -34,38 +32,13 @@ export default function EmpresasPage() {
 
   useEffect(() => {
     setLoading(true)
-    const promises = Array.from({ length: 6 }, (_, i) => {
-      const d = subMonths(new Date(year, month - 1, 1), 5 - i)
-      const s = startOfMonth(d)
-      const e = endOfMonth(d)
-      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const monthLabel = formatMonthYear(d.getMonth() + 1, d.getFullYear())
-      return fetch(
-        `/api/transactions?month=${d.getMonth() + 1}&year=${d.getFullYear()}&page=1`
-      )
-        .then((r) => r.json())
-        .then((data) => ({ txs: data.data, monthStr, monthLabel }))
-    })
-
-    Promise.all(promises).then((results) => {
-      function build(empresa: string): CompanyData {
-        const months: MonthlyPL[] = results.map(({ txs, monthStr, monthLabel }) => {
-          const filtered = (txs as Array<{ empresa: string; type: string; amount: number }>)
-            .filter((t) => t.empresa === empresa)
-          const receita = filtered.filter((t) => t.type === 'Receita').reduce((s, t) => s + t.amount, 0)
-          const custo = filtered.filter((t) => t.type === 'Despesa').reduce((s, t) => s + t.amount, 0)
-          return { month: monthStr, monthLabel: monthLabel.slice(0, 3), receita, custo, lucro: receita - custo }
-        })
-        return {
-          months,
-          totalReceita: months.reduce((s, m) => s + m.receita, 0),
-          totalCusto: months.reduce((s, m) => s + m.custo, 0),
-          totalLucro: months.reduce((s, m) => s + m.lucro, 0),
-        }
-      }
-      setMarmitas(build('Marmitas'))
-      setChef(build('Personal Chef'))
-    }).finally(() => setLoading(false))
+    fetch(`/api/empresas?month=${month}&year=${year}&months=6`)
+      .then((r) => r.json())
+      .then((d) => {
+        setMarmitas(d.marmitas)
+        setChef(d.personalChef)
+      })
+      .finally(() => setLoading(false))
   }, [month, year])
 
   if (loading) {
@@ -79,18 +52,14 @@ export default function EmpresasPage() {
     )
   }
 
-  function CompanySection({
-    name, data, color,
-  }: { name: string; data: CompanyData; color: string }) {
+  function CompanySection({ name, data, color }: { name: string; data: CompanyData; color: string }) {
     return (
       <div className="space-y-4">
         <ChartCard
           title={name}
           subtitle="Receita vs Custo — últimos 6 meses"
           action={
-            <span
-              className={`text-[13px] font-bold ${data.totalLucro >= 0 ? 'text-[#16A34A]' : 'text-[#E11D48]'}`}
-            >
+            <span className={`text-[13px] font-bold ${data.totalLucro >= 0 ? 'text-[#16A34A]' : 'text-[#E11D48]'}`}>
               {data.totalLucro >= 0 ? '+' : ''}{formatCurrency(data.totalLucro)} lucro
             </span>
           }
@@ -107,7 +76,6 @@ export default function EmpresasPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Tabela mensal */}
         <div className="bg-white rounded-lg shadow-card overflow-hidden">
           <table className="w-full">
             <thead>
@@ -121,7 +89,7 @@ export default function EmpresasPage() {
             <tbody>
               {data.months.map((m) => (
                 <tr key={m.month} className="border-b border-slate-border last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-2 text-[12px] text-ink">{m.monthLabel}</td>
+                  <td className="px-4 py-2 text-[12px] text-ink capitalize">{m.monthLabel}</td>
                   <td className="px-4 py-2 text-[12px] text-right text-teal">{formatCurrency(m.receita)}</td>
                   <td className="px-4 py-2 text-[12px] text-right text-[#E11D48]">{formatCurrency(m.custo)}</td>
                   <td className={`px-4 py-2 text-[12px] text-right font-semibold ${m.lucro >= 0 ? 'text-[#16A34A]' : 'text-[#E11D48]'}`}>
